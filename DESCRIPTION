@@ -1,0 +1,12 @@
+Package: rimr
+Type: Package
+Title: Reidentification of candidates made in R
+Version: 0.1.0
+Authors@R: person("Michael", "Škvrňák", email = "397925@mail.muni.cz",
+                  role = c("aut", "cre"))
+Description: Package for tracking political careers across candidates' lists. 
+License: MIT
+Encoding: UTF-8
+LazyData: true
+Suggests: testthat
+RoxygenNote: 6.0.1
