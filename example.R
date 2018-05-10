@@ -12,6 +12,7 @@ process_df <- function(df){
     df$titles <- unlist(purrr::map(df$name, listr::extract_titles))
     df$highest_title <- listr::recode_titles(df$titles)
     df <- listr::add_names_to_df(df, "full_name")
+    df$full_name %<>% stringr::str_trim()
     df <- listr::parse_gender(df, "first_name", "last_name")
     df$pct_votes %<>% gsub(",", ".", .) %>% as.numeric()
     df$abs_votes %<>% gsub("\\s", "", .) %>% as.numeric()
@@ -20,39 +21,31 @@ process_df <- function(df){
 
 kraj_2000 %<>% process_df
 kraj_2004 %<>% process_df
-kraj_2008 %<>% process_df
+# kraj_2008 %<>% process_df
 
 kraj_2000$approx_birth_year <- 2000 - kraj_2000$age
 kraj_2004$approx_birth_year <- 2004 - kraj_2004$age
-kraj_2008$approx_birth_year <- 2008 - kraj_2008$age
+# kraj_2008$approx_birth_year <- 2008 - kraj_2008$age
 kraj_2004 <- kraj_2004[!is.na(kraj_2004$name), ]
-kraj_2008 <- kraj_2008[!is.na(kraj_2008$name), ]
+# kraj_2008 <- kraj_2008[!is.na(kraj_2008$name), ]
 
 library(RSQLite)
-con <- dbConnect(SQLite(), ":memory:")
+con <- DBI::dbConnect(RSQLite::SQLite(), "test4.sqlite")
 
 upload_data(con, kraj_2000, "kraj_2000")
 upload_data(con, kraj_2004, "kraj_2004")
-upload_data(con, kraj_2008, "kraj_2008")
+# upload_data(con, kraj_2008, "kraj_2008")
 
-output2000_04 <-
-    find_all_similar(con, "kraj_2000", "kraj_2004",
+t8 <- find_all_similar(con, "kraj_2000", "kraj_2004",
+                           eq = c("first_name", "last_name", "region"),
+                           eq_tol = list(c("approx_birth_year", 1)))
+
+t5 <- find_all_similar(con, "kraj_2000", "kraj_2004",
                  eq = c("first_name", "last_name", "region"),
                  eq_tol = list(c("approx_birth_year", 1)))
+beepr::beep(5)
 
-create_tidy_output <- function(output_df){
-    output_df$person_id <- 1:nrow(output_df)
-    # reorder columns so that the person_id is the first and then the rest
-    output_df <- output_df[c(ncol(output_df), 2:ncol(output_df) - 1)]
 
-    iter <- tidyr::gather(output_df, "col", "row_id", 2:ncol(output_df))
-    iter <- iter[!is.na(iter$row_id), ]
-
-    dplyr::bind_rows(purrr::map(1:nrow(iter), function(x)
-        cbind(dbGetQuery(con, paste0("SELECT * FROM ", iter$col[x],
-                               " WHERE row_id = ", iter$row_id[x])),
-        data.frame(person_id = iter$person_id[x]))))
-}
 
 
 find_all_similar_sequence <- function(conn, sequence_ts, ...){

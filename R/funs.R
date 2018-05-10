@@ -55,6 +55,33 @@ create_query_filter <- function(query_var){
     }
 }
 
+get_var_column <- function(var){
+    var$column
+}
+
+insert_value_and_type <- function(var, value){
+    var$value <- value
+    if(is.numeric(var$value)){
+        var$type <- "number"
+    }else{
+        var$type <- "text"
+    }
+    var
+}
+
+#' insert query values into variable list
+insert_query_values <- function(conn, t1, row, vars){
+    var_values <-
+        RSQLite::dbGetQuery(conn,
+                            paste0("SELECT ",
+                                   paste0(unlist(lapply(vars, function(x) get_var_column(x))),
+                                          collapse = ", "),
+                                   " FROM ", t1, " WHERE row_id = :row"),
+                            params = list(row = row))
+    new_vars <- purrr::map2(vars, var_values, function(x, y) insert_value_and_type(x, y))
+    new_vars
+}
+
 
 #' Find match between one person from the first dataset (t1) and
 #' the whole second dataset (t2)
@@ -80,7 +107,6 @@ find_similar <- function(conn, t1, t2, row,
                           lt = NULL,
                           hte = NULL,
                           lte = NULL){
-
     eqs <- create_var_list(eq, "=")
     eq_sub <- create_var_list(eq_sub, "=s")
     eq_tols <- create_var_list(eq_tol, "~")
@@ -91,31 +117,36 @@ find_similar <- function(conn, t1, t2, row,
 
     # get values for comparison
     query_vars <- c(eqs, eq_sub, eq_tols, hts, lts, htes, ltes)
-    query_value <- function(conn, t1, row, var){
-        var$value <- RSQLite::dbGetQuery(conn,
-                                paste0("select ", var$column, " from ", t1,
-                                       " WHERE row_id = :row"),
-                   params = list(row = row))[[1]]
-        if(is.numeric(var$value)){
-            var$type <- "number"
-        }else{
-            var$type <- "text"
-        }
-        var
-    }
-    var_values <- lapply(query_vars, function(x) query_value(conn, t1, row, x))
+    vars <- insert_query_values(conn, t1, row, query_vars)
 
     # construct the query
     query <- paste0('SELECT row_id FROM ',
                     t2,
                     ' WHERE ',
-                    paste0(unlist(lapply(var_values, create_query_filter)), collapse = " AND "))
+                    paste0(unlist(lapply(vars, create_query_filter)), collapse = " AND "))
 
     tmp <- RSQLite::dbGetQuery(conn, query)$row_id
     tmp <- ifelse(length(tmp) == 0, NA, tmp)
     # make column
-    data.frame(from = row, to = tmp)
+    if(row %% 250 == 0){
+        cat(row, "->", tmp, "\n")
+    }
 
+    #' INSERT data
+    if(!is.na(tmp)){
+        rs <- dbSendStatement(conn,
+                              paste0("INSERT INTO ", paste0(t1, "_", t2),
+                                     " (", t1, ",", t2, ") VALUES (:row, :tmp)"),
+                              params = list(row = row, tmp = tmp))
+        dbClearResult(rs)
+    }
+    NULL
+    #data.frame(from = row, to = tmp)
+
+}
+
+create_values_list <- function(missing_rows){
+    paste0(unlist(purrr::map(missing_rows, function(x) paste0("(", x, ")"))), collapse = ", ")
 }
 
 #' Find all matches between tables t1 and t2 and add candidates who did not run in the
@@ -123,30 +154,52 @@ find_similar <- function(conn, t1, t2, row,
 #' @param conn Connection to SQL database in which the data are stored
 #' @param t1 Name of the first table
 #' @param t2 Name of the second table
+#' @param start From which row the comparison should be made
 #' @param ... Vectors containing variables for comparison (see find_similar)
 #' @export
-find_all_similar <- function(conn, t1, t2, ...){
+find_all_similar <- function(conn, t1, t2, start = 1, ...){
     #' Find all matches between first and second table
 
-    rows1 <- RSQLite::dbGetQuery(conn, paste0("SELECT COUNT(row_id) FROM ", t1))[[1]]
-    similars <- purrr::map(1:rows1, function(x) find_similar(conn, t1, t2, x, ...))
-    out <- do.call(rbind, similars)
+    #' Create DB to store the results
+    rs <- dbSendStatement(conn,
+                    paste0("CREATE TABLE IF NOT EXISTS ",
+                    paste0(t1, "_", t2),
+                    " (", t1, ", ", t2, ")"))
+    dbClearResult(rs)
 
+    rows1 <- RSQLite::dbGetQuery(conn, paste0("SELECT COUNT(row_id) FROM ", t1))[[1]]
+
+    purrr::map(start:rows1, function(x) find_similar(conn, t1, t2, x, ...))
+    # out <- do.call(rbind, similars)
+
+    out <- dbGetQuery(conn, paste0("SELECT * FROM ", paste0(t1, "_", t2)))
     #' Find all newly running candidates (who are not in the first table)
     #' and add them to output
+
+    rows1 <- RSQLite::dbGetQuery(conn, paste0("SELECT COUNT(row_id) FROM ", t1))[[1]]
     rows2 <- RSQLite::dbGetQuery(conn, paste0("SELECT COUNT(row_id) FROM ", t2))[[1]]
-    missing_rows <- 1:rows2
-    missing_rows <- missing_rows[!missing_rows %in% out$to]
-    if(length(missing_rows) > 0){
-        out2 <- data.frame(from = NA,
-                           to = missing_rows)
-        tmp <- rbind(out, out2)
-        colnames(tmp) <- c(t1, t2)
-        tmp
-    }else{
-        colnames(out) <- c(t1, t2)
-        out
-    }
+
+    #' Insert persons which did not run in both election
+    missing_rows1 <- 1:rows1
+    missing_rows1 <- missing_rows1[!missing_rows1 %in% out[[t1]]]
+    missing_rows2 <- 1:rows2
+    missing_rows2 <- missing_rows2[!missing_rows2 %in% out[[t2]]]
+
+    dbClearResult(dbSendStatement(con,
+                                  paste0("INSERT INTO ",
+                                         paste0(t1, "_", t2),
+                                         " (", t1, ")",
+                                         " VALUES ",
+                                         create_values_list(missing_rows1))))
+
+    dbClearResult(dbSendStatement(con,
+                                  paste0("INSERT INTO ",
+                                         paste0(t1, "_", t2),
+                                         " (", t2, ")",
+                                         " VALUES ",
+                                         create_values_list(missing_rows2))))
+
+    dbGetQuery(con, paste0("SELECT * FROM ", paste0(t1, "_", t2)))
 }
 
 # TODO: Define recursive matching for sequence of election

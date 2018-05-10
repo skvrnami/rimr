@@ -5,6 +5,7 @@
 * add tests
 * check tolerance bounds (is it necessary to make +- tolerance for checking approximate year of birth?)
 * check similarity of last names of women after getting married (could they be separated by dash?)
+* https://developers.google.com/analytics/devguides/reporting/core/v3/reference#filters (filtering for substrings and regex)
 
 ## Conceptual:
 
