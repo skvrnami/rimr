@@ -185,21 +185,21 @@ find_all_similar <- function(conn, t1, t2, start = 1, ...){
     missing_rows2 <- 1:rows2
     missing_rows2 <- missing_rows2[!missing_rows2 %in% out[[t2]]]
 
-    dbClearResult(dbSendStatement(con,
+    dbClearResult(dbSendStatement(conn,
                                   paste0("INSERT INTO ",
                                          paste0(t1, "_", t2),
                                          " (", t1, ")",
                                          " VALUES ",
                                          create_values_list(missing_rows1))))
 
-    dbClearResult(dbSendStatement(con,
+    dbClearResult(dbSendStatement(conn,
                                   paste0("INSERT INTO ",
                                          paste0(t1, "_", t2),
                                          " (", t2, ")",
                                          " VALUES ",
                                          create_values_list(missing_rows2))))
 
-    dbGetQuery(con, paste0("SELECT * FROM ", paste0(t1, "_", t2)))
+    dbGetQuery(conn, paste0("SELECT * FROM ", paste0(t1, "_", t2)))
 }
 
 # TODO: Define recursive matching for sequence of election
