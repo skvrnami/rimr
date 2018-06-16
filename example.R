@@ -30,7 +30,7 @@ kraj_2004 <- kraj_2004[!is.na(kraj_2004$name), ]
 # kraj_2008 <- kraj_2008[!is.na(kraj_2008$name), ]
 
 library(RSQLite)
-con <- DBI::dbConnect(RSQLite::SQLite(), "test4.sqlite")
+con <- DBI::dbConnect(RSQLite::SQLite(), "test7.sqlite")
 
 upload_data(con, kraj_2000, "kraj_2000")
 upload_data(con, kraj_2004, "kraj_2004")
@@ -40,12 +40,10 @@ t8 <- find_all_similar(con, "kraj_2000", "kraj_2004",
                            eq = c("first_name", "last_name", "region"),
                            eq_tol = list(c("approx_birth_year", 1)))
 
-t5 <- find_all_similar(con, "kraj_2000", "kraj_2004",
-                 eq = c("first_name", "last_name", "region"),
-                 eq_tol = list(c("approx_birth_year", 1)))
-beepr::beep(5)
-
-
+# t5 <- find_all_similar(con, "kraj_2000", "kraj_2004",
+#                  eq = c("first_name", "last_name", "region"),
+#                  eq_tol = list(c("approx_birth_year", 1)))
+# beepr::beep(5)
 
 
 find_all_similar_sequence <- function(conn, sequence_ts, ...){

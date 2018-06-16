@@ -83,6 +83,19 @@ insert_query_values <- function(conn, t1, row, vars){
 }
 
 
+#' Calculate similarity between persons
+#'
+#' @param original_person Data.frame with all data about original person
+#' @param similar_person Data.frame with all data about similar persons
+#' Calculate in how many columns the data about the persons match (strictly equals)
+calculate_similarity_between_persons <- function(original_person, similar_persons){
+    purrr::map(purrr::transpose(similar_persons), function(x) {
+        sum(unlist(purrr::map2(original_person, x, function(y, z) {
+            y == z})), na.rm = TRUE)
+    }) %>% unlist
+}
+
+
 #' Find match between one person from the first dataset (t1) and
 #' the whole second dataset (t2)
 #' @param conn Connection to SQL database in which the data are stored
@@ -100,13 +113,14 @@ insert_query_values <- function(conn, t1, row, vars){
 #' @param lte Vector of variables which should be lower or equal in t1
 #' @export
 find_similar <- function(conn, t1, t2, row,
-                          eq = NULL,
-                          eq_tol = NULL,
-                          eq_sub = NULL,
-                          ht = NULL,
-                          lt = NULL,
-                          hte = NULL,
-                          lte = NULL){
+                         eq = NULL,
+                         eq_tol = NULL,
+                         eq_sub = NULL,
+                         ht = NULL,
+                         lt = NULL,
+                         hte = NULL,
+                         lte = NULL,
+                         keep_duplicities = TRUE){
     eqs <- create_var_list(eq, "=")
     eq_sub <- create_var_list(eq_sub, "=s")
     eq_tols <- create_var_list(eq_tol, "~")
@@ -126,8 +140,28 @@ find_similar <- function(conn, t1, t2, row,
                     paste0(unlist(lapply(vars, create_query_filter)), collapse = " AND "))
 
     tmp <- RSQLite::dbGetQuery(conn, query)$row_id
-    tmp <- ifelse(length(tmp) == 0, NA, tmp)
-    # make column
+    if(length(tmp) == 0){
+        tmp <- NA
+    }else if(length(tmp) > 1 & !keep_duplicities){
+        #' TODO: Decide what to do if there are more than 1 similar persons
+        orig_person <- dbGetQuery(con, paste0("SELECT * FROM ", t1,
+                                         " WHERE row_id = ", row)) %>%
+            dplyr::select(-row_id)
+        similar_persons <- dbGetQuery(con, paste0("SELECT * FROM ", t2,
+                                                  " WHERE row_id IN (",
+                                                  paste0(tmp, collapse = ", "),
+                                                  ")"))
+
+        common_cols <- intersect(colnames(orig_person), colnames(orig_person))
+        orig_person <- orig_person %>% select(common_cols)
+        similar_persons <- similar_persons %>% select(common_cols)
+
+        p_similarity <- calculate_similarity_between_persons(orig_person,
+                                                             similar_persons)
+        tmp <- tmp[which.max(p_similarity)]
+
+    }
+
     if(row %% 250 == 0){
         cat(row, "->", tmp, "\n")
     }
@@ -218,9 +252,10 @@ create_tidy_output <- function(output_df){
     iter <- tidyr::gather(output_df, "col", "row_id", 2:ncol(output_df))
     iter <- iter[!is.na(iter$row_id), ]
 
-    dplyr::bind_rows(purrr::map(1:nrow(iter), function(x)
-        cbind(dbGetQuery(con, paste0("SELECT * FROM ", iter$col[x],
-                                     " WHERE row_id = ", iter$row_id[x])),
-              data.frame(person_id = iter$person_id[x],
-                         election_id = iter$col[x]))))
+    dplyr::bind_rows(purrr::map(purrr::transpose(iter), function(x) {
+        cbind(dbGetQuery(con, paste0("SELECT * FROM ", x$col,
+                                     " WHERE row_id = ", x$row_id)),
+              data.frame(person_id = x$person_id,
+                         election_id = x$col))
+    }))
 }
