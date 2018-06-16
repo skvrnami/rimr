@@ -45,6 +45,18 @@ t8 <- find_all_similar(con, "kraj_2000", "kraj_2004",
 #                  eq_tol = list(c("approx_birth_year", 1)))
 # beepr::beep(5)
 
+test3 <- data.frame(first_name = c("Adam", "Karel"),
+                    last_name = c("Novák", "Hoven"),
+                    year = c(1980, 1990))
+test4 <- data.frame(first_name = c("Adam", "Adam"),
+                    last_name = c("Novák", "Novák"),
+                    year = c(1980, 1981))
+upload_data(con, test3, "test3")
+upload_data(con, test4, "test4")
+
+find_all_similar(con, "test3", "test4",
+                 eq = c("first_name", "last_name"),
+                 eq_tol = list(c("year", 1)))
 
 find_all_similar_sequence <- function(conn, sequence_ts, ...){
     # TODO: Check if all columns have the same type

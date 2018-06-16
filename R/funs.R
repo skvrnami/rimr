@@ -89,6 +89,7 @@ insert_query_values <- function(conn, t1, row, vars){
 #' @param similar_person Data.frame with all data about similar persons
 #' Calculate in how many columns the data about the persons match (strictly equals)
 calculate_similarity_between_persons <- function(original_person, similar_persons){
+    #' TODO: use other comparison than strict equality
     purrr::map(purrr::transpose(similar_persons), function(x) {
         sum(unlist(purrr::map2(original_person, x, function(y, z) {
             y == z})), na.rm = TRUE)
@@ -143,7 +144,6 @@ find_similar <- function(conn, t1, t2, row,
     if(length(tmp) == 0){
         tmp <- NA
     }else if(length(tmp) > 1 & !keep_duplicities){
-        #' TODO: Decide what to do if there are more than 1 similar persons
         orig_person <- dbGetQuery(con, paste0("SELECT * FROM ", t1,
                                          " WHERE row_id = ", row)) %>%
             dplyr::select(-row_id)
@@ -167,12 +167,22 @@ find_similar <- function(conn, t1, t2, row,
     }
 
     #' INSERT data
-    if(!is.na(tmp)){
-        rs <- dbSendStatement(conn,
-                              paste0("INSERT INTO ", paste0(t1, "_", t2),
-                                     " (", t1, ",", t2, ") VALUES (:row, :tmp)"),
-                              params = list(row = row, tmp = tmp))
-        dbClearResult(rs)
+    if(length(tmp) > 1){
+        purrr::map(tmp, function(x) {
+            rs <- dbSendStatement(conn,
+                                  paste0("INSERT INTO ", paste0(t1, "_", t2),
+                                         " (", t1, ",", t2, ") VALUES (:row, :tmp)"),
+                                  params = list(row = row, tmp = x))
+            dbClearResult(rs)
+        })
+    }else{
+        if(!is.na(tmp)){
+                rs <- dbSendStatement(conn,
+                                      paste0("INSERT INTO ", paste0(t1, "_", t2),
+                                             " (", t1, ",", t2, ") VALUES (:row, :tmp)"),
+                                      params = list(row = row, tmp = tmp))
+                dbClearResult(rs)
+        }
     }
     NULL
     #data.frame(from = row, to = tmp)
@@ -195,6 +205,7 @@ find_all_similar <- function(conn, t1, t2, start = 1, ...){
     #' Find all matches between first and second table
 
     #' Create DB to store the results
+    browser()
     rs <- dbSendStatement(conn,
                     paste0("CREATE TABLE IF NOT EXISTS ",
                     paste0(t1, "_", t2),
@@ -219,19 +230,24 @@ find_all_similar <- function(conn, t1, t2, start = 1, ...){
     missing_rows2 <- 1:rows2
     missing_rows2 <- missing_rows2[!missing_rows2 %in% out[[t2]]]
 
-    dbClearResult(dbSendStatement(conn,
-                                  paste0("INSERT INTO ",
-                                         paste0(t1, "_", t2),
-                                         " (", t1, ")",
-                                         " VALUES ",
-                                         create_values_list(missing_rows1))))
+    if(length(missing_rows1) > 0){
+        dbClearResult(dbSendStatement(conn,
+                                      paste0("INSERT INTO ",
+                                             paste0(t1, "_", t2),
+                                             " (", t1, ")",
+                                             " VALUES ",
+                                             create_values_list(missing_rows1))))
+    }
 
-    dbClearResult(dbSendStatement(conn,
-                                  paste0("INSERT INTO ",
-                                         paste0(t1, "_", t2),
-                                         " (", t2, ")",
-                                         " VALUES ",
-                                         create_values_list(missing_rows2))))
+    if(length(missing_rows2) > 0){
+        dbClearResult(dbSendStatement(conn,
+                                      paste0("INSERT INTO ",
+                                             paste0(t1, "_", t2),
+                                             " (", t2, ")",
+                                             " VALUES ",
+                                             create_values_list(missing_rows2))))
+    }
+
 
     dbGetQuery(conn, paste0("SELECT * FROM ", paste0(t1, "_", t2)))
 }
