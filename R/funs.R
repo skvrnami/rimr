@@ -144,10 +144,10 @@ find_similar <- function(conn, t1, t2, row,
     if(length(tmp) == 0){
         tmp <- NA
     }else if(length(tmp) > 1 & !keep_duplicities){
-        orig_person <- dbGetQuery(con, paste0("SELECT * FROM ", t1,
+        orig_person <- RSQLite::dbGetQuery(con, paste0("SELECT * FROM ", t1,
                                          " WHERE row_id = ", row)) %>%
             dplyr::select(-row_id)
-        similar_persons <- dbGetQuery(con, paste0("SELECT * FROM ", t2,
+        similar_persons <- RSQLite::dbGetQuery(con, paste0("SELECT * FROM ", t2,
                                                   " WHERE row_id IN (",
                                                   paste0(tmp, collapse = ", "),
                                                   ")"))
@@ -169,19 +169,19 @@ find_similar <- function(conn, t1, t2, row,
     #' INSERT data
     if(length(tmp) > 1){
         purrr::map(tmp, function(x) {
-            rs <- dbSendStatement(conn,
+            rs <- RSQLite::dbSendStatement(conn,
                                   paste0("INSERT INTO ", paste0(t1, "_", t2),
                                          " (", t1, ",", t2, ") VALUES (:row, :tmp)"),
                                   params = list(row = row, tmp = x))
-            dbClearResult(rs)
+            RSQLite::dbClearResult(rs)
         })
     }else{
         if(!is.na(tmp)){
-                rs <- dbSendStatement(conn,
+                rs <- RSQLite::dbSendStatement(conn,
                                       paste0("INSERT INTO ", paste0(t1, "_", t2),
                                              " (", t1, ",", t2, ") VALUES (:row, :tmp)"),
                                       params = list(row = row, tmp = tmp))
-                dbClearResult(rs)
+                RSQLite::dbClearResult(rs)
         }
     }
     NULL
@@ -205,19 +205,18 @@ find_all_similar <- function(conn, t1, t2, start = 1, ...){
     #' Find all matches between first and second table
 
     #' Create DB to store the results
-    browser()
-    rs <- dbSendStatement(conn,
+    rs <- RSQLite::dbSendStatement(conn,
                     paste0("CREATE TABLE IF NOT EXISTS ",
                     paste0(t1, "_", t2),
                     " (", t1, ", ", t2, ")"))
-    dbClearResult(rs)
+    RSQLite::dbClearResult(rs)
 
     rows1 <- RSQLite::dbGetQuery(conn, paste0("SELECT COUNT(row_id) FROM ", t1))[[1]]
 
     purrr::map(start:rows1, function(x) find_similar(conn, t1, t2, x, ...))
     # out <- do.call(rbind, similars)
 
-    out <- dbGetQuery(conn, paste0("SELECT * FROM ", paste0(t1, "_", t2)))
+    out <- RSQLite::dbGetQuery(conn, paste0("SELECT * FROM ", paste0(t1, "_", t2)))
     #' Find all newly running candidates (who are not in the first table)
     #' and add them to output
 
@@ -231,7 +230,8 @@ find_all_similar <- function(conn, t1, t2, start = 1, ...){
     missing_rows2 <- missing_rows2[!missing_rows2 %in% out[[t2]]]
 
     if(length(missing_rows1) > 0){
-        dbClearResult(dbSendStatement(conn,
+        RSQLite::dbClearResult(
+            RSQLite::dbSendStatement(conn,
                                       paste0("INSERT INTO ",
                                              paste0(t1, "_", t2),
                                              " (", t1, ")",
@@ -240,7 +240,8 @@ find_all_similar <- function(conn, t1, t2, start = 1, ...){
     }
 
     if(length(missing_rows2) > 0){
-        dbClearResult(dbSendStatement(conn,
+        RSQLite::dbClearResult(
+            RSQLite::dbSendStatement(conn,
                                       paste0("INSERT INTO ",
                                              paste0(t1, "_", t2),
                                              " (", t2, ")",
@@ -249,7 +250,7 @@ find_all_similar <- function(conn, t1, t2, start = 1, ...){
     }
 
 
-    dbGetQuery(conn, paste0("SELECT * FROM ", paste0(t1, "_", t2)))
+    RSQLite::dbGetQuery(conn, paste0("SELECT * FROM ", paste0(t1, "_", t2)))
 }
 
 # TODO: Define recursive matching for sequence of election
@@ -269,7 +270,7 @@ create_tidy_output <- function(output_df){
     iter <- iter[!is.na(iter$row_id), ]
 
     dplyr::bind_rows(purrr::map(purrr::transpose(iter), function(x) {
-        cbind(dbGetQuery(con, paste0("SELECT * FROM ", x$col,
+        cbind(RSQLite::dbGetQuery(con, paste0("SELECT * FROM ", x$col,
                                      " WHERE row_id = ", x$row_id)),
               data.frame(person_id = x$person_id,
                          election_id = x$col))
