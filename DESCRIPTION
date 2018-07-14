@@ -13,6 +13,7 @@ Suggests: testthat,
     rmarkdown
 Imports:
     dplyr, 
-    parallel
+    parallel, 
+    tidyr
 RoxygenNote: 6.0.1
 VignetteBuilder: knitr
