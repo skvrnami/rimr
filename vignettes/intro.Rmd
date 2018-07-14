@@ -11,6 +11,7 @@ vignette: >
 
 # Load data
 ```{r}
+library(dplyr)
 library(rimr)
 
 load("../data/kraj_2000.RData")
