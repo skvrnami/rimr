@@ -20,11 +20,18 @@ test_that("creating variable lists works", {
                            tolerance = 1)))
 })
 
-test_that("creating query works", {
-    expect_equal(create_query_filter(list(column = "first_name",
-                                          operation = "=",
-                                          value = "Karel",
-                                          type = "text",
-                                          tolerance = NA)),
-                 "first_name='Karel'")
+test_that("adding quotation marks works", {
+    expect_equal(add_q_marks("Karel"),
+                 glue::glue("'Karel'"))
+    expect_equal(add_q_marks(6),
+                 glue::glue(6))
 })
+
+test_that("constructing predicate works", {
+    expect_equal(construct_predicate("first_name", "==", "Karel"),
+                 glue::glue("first_name == 'Karel'"))
+    expect_equal(construct_predicate("last_name", "=s", "Nováková"),
+                 glue::glue("grepl('Nováková', last_name)"))
+})
+
+

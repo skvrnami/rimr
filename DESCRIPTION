@@ -1,10 +1,10 @@
 Package: rimr
 Type: Package
-Title: Reidentification of candidates made in R
-Version: 0.1.0
+Title: Deterministic record linkage in R
+Version: 0.2.0
 Authors@R: person("Michael", "Škvrňák", email = "397925@mail.muni.cz",
                   role = c("aut", "cre"))
-Description: Package for tracking political careers across candidates' lists. 
+Description: Package for deterministic record linkage in R. 
 License: MIT
 Encoding: UTF-8
 LazyData: true

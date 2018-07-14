@@ -5,16 +5,11 @@
 \title{Find match between one person from the first dataset (t1) and
 the whole second dataset (t2)}
 \usage{
-find_similar(conn, t1, t2, row, eq = NULL, eq_tol = NULL, eq_sub = NULL,
-  ht = NULL, lt = NULL, hte = NULL, lte = NULL)
+find_similar(source, target, row, eq = NULL, eq_tol = NULL, eq_sub = NULL,
+  ht = NULL, lt = NULL, hte = NULL, lte = NULL, id = "row_id",
+  compare_cols = NULL, keep_duplicities = TRUE, verbose = TRUE)
 }
 \arguments{
-\item{conn}{Connection to SQL database in which the data are stored}
-
-\item{t1}{Name of the first table}
-
-\item{t2}{Name of the second table}
-
 \item{row}{Row from the first table for which similar person is searched}
 
 \item{eq}{Vector of variables which should be equal in t1 and t2}
@@ -32,6 +27,10 @@ in t1 and t2 within specified range (tolerance)}
 \item{hte}{Vector of variables which should be higher or equal in t1}
 
 \item{lte}{Vector of variables which should be lower or equal in t1}
+
+\item{t1}{Name of the first table}
+
+\item{t2}{Name of the second table}
 }
 \description{
 Find match between one person from the first dataset (t1) and

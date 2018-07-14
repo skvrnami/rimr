@@ -5,16 +5,18 @@
 \title{Find all matches between tables t1 and t2 and add candidates who did not run in the
 sequential election with missing values}
 \usage{
-find_all_similar(conn, t1, t2, ...)
+find_all_similar(source, target, start = 1, cores = 1, ...)
 }
 \arguments{
+\item{start}{From which row the comparison should be made}
+
+\item{...}{Vectors containing variables for comparison (see find_similar)}
+
 \item{conn}{Connection to SQL database in which the data are stored}
 
 \item{t1}{Name of the first table}
 
 \item{t2}{Name of the second table}
-
-\item{...}{Vectors containing variables for comparison (see find_similar)}
 }
 \description{
 Find all matches between tables t1 and t2 and add candidates who did not run in the
