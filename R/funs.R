@@ -1,17 +1,3 @@
-# TODO: Convert factors to numerical values so that comparison operations
-# make sense
-
-#' Append row_id and upload to DB
-#'
-#' @param connection SQLite connection
-#' @param df data.frame to be uploaded
-#' @param name name of the table
-#' @export
-upload_data <- function(connection, df, name){
-    df$row_id <- 1:nrow(df)
-    DBI::dbWriteTable(connection, name, df)
-}
-
 #' create list storing column with attributes for comparison,
 #' operation on which the data should be compared (=, >, <, >=, <=)
 #' @param x Vector of variables
@@ -33,34 +19,94 @@ create_var_list <- function(x, operation){
 }
 
 
-#' Create filter for querying the DB (WHERE clauses)
-#'
-#' @param query_var Variables to be queried
-#' (list of column, value, tolerance and operation to be done)
-create_query_filter <- function(query_var){
-    if(query_var$operation == "~"){
-        paste0(query_var$column, ">=", (query_var$value - query_var$tolerance), " AND ",
-               query_var$column, "<=", (query_var$value + query_var$tolerance))
-    }else if(query_var$type == "text"){
-        if(query_var$operation == "=s"){
-            # husband's last name should be first and it is separated by space
-            # TODO: modify to consider divorce
-            paste0(query_var$column, " LIKE ", "'%", gsub("'", "''", query_var$value), "'")
-        }else{
-            paste0(query_var$column, query_var$operation, "'",
-                   gsub("'", "''", query_var$value), "'") # escape ' for query
-        }
+#' Add quotation marks to value if necessary
+#' @param value Value of a variable to be enquoted
+add_q_marks <- function(value){
+    UseMethod("add_q_marks")
+}
+
+add_q_marks.default <- function(value){
+    glue::glue("'{value}'")
+}
+
+add_q_marks.numeric <- function(value){
+    glue::glue("{value}")
+}
+
+construct_predicate <- function(var, operation, value){
+    if(operation != "=s"){
+        as.character(glue::glue("{var} {operation} {value}",
+                                value = add_q_marks(value)))
     }else{
-        paste0(query_var$column, query_var$operation, query_var$value)
+        as.character(glue::glue("grepl('{value}', {var})"))
     }
+
+}
+
+create_predicate_from_query_var <- function(query_var){
+    if(query_var$operation == "="){
+        list(name = query_var$column,
+             predicate = construct_predicate(query_var$column, "==", query_var$value))
+    }else if(query_var$operation == "~"){
+        list(name = query_var$column,
+             predicate = paste(c(construct_predicate(query_var$column, ">=",
+                                                     query_var$value - query_var$tolerance),
+                                 construct_predicate(query_var$column, "<=",
+                                                     query_var$value + query_var$tolerance)),
+                               collapse = "&"))
+
+    }else{
+        list(name = query_var$column,
+             predicate = construct_predicate(query_var$column, query_var$operation, query_var$value))
+    }
+}
+
+
+create_filter <- function(query_vars, collapse_sign = "&"){
+    vars <- lapply(query_vars, create_predicate_from_query_var)
+    paste0(lapply(vars, function(x) x$predicate),
+           collapse = collapse_sign)
+}
+
+
+insert_value_and_type <- function(var, value){
+    var$value <- value
+    if(is.numeric(var$value)){
+        var$type <- "number"
+    }else{
+        var$type <- "text"
+    }
+    var
+}
+
+#' insert query values into variable list
+insert_query_values <- function(source, row, vars){
+    select_vars <- unlist(lapply(vars, function(x) x$column))
+    var_values <- dplyr::select(source[row, ], !!select_vars)
+    new_vars <- purrr::map2(vars, var_values, function(x, y) insert_value_and_type(x, y))
+    new_vars
+}
+
+
+#' Calculate similarity between persons
+#'
+#' @param original Data.frame with all data about original person
+#' @param similar Data.frame with all data about similar persons
+#' Calculate in how many columns the data about the persons match (strictly equals)
+calculate_similarity_between_persons <- function(original, similar){
+    #' TODO: use other comparison than strict equality
+    unlist(purrr::map(purrr::transpose(similar), function(x) {
+        sum(unlist(purrr::map2(original, x, function(y, z) {
+            y == z})), na.rm = TRUE)
+    }))
 }
 
 
 #' Find match between one person from the first dataset (t1) and
 #' the whole second dataset (t2)
-#' @param conn Connection to SQL database in which the data are stored
-#' @param t1 Name of the first table
-#' @param t2 Name of the second table
+#'
+#' @param source Name of the first table
+#' @param target Name of the second table
 #' @param row Row from the first table for which similar person is searched
 #' @param eq Vector of variables which should be equal in t1 and t2
 #' @param eq_tol Vector of variables which should be approximately equal
@@ -71,16 +117,23 @@ create_query_filter <- function(query_var){
 #' @param lt Vector of variables which should be lower in t1
 #' @param hte Vector of variables which should be higher or equal in t1
 #' @param lte Vector of variables which should be lower or equal in t1
-#' @export
-find_similar <- function(conn, t1, t2, row,
-                          eq = NULL,
-                          eq_tol = NULL,
-                          eq_sub = NULL,
-                          ht = NULL,
-                          lt = NULL,
-                          hte = NULL,
-                          lte = NULL){
-
+#' @param verbose Specify if you want to display message for every 250th row
+#'
+#' @export find_similar
+find_similar <- function(source,
+                         target,
+                         row,
+                         eq = NULL,
+                         eq_tol = NULL,
+                         eq_sub = NULL,
+                         ht = NULL,
+                         lt = NULL,
+                         hte = NULL,
+                         lte = NULL,
+                         id = "row_id",
+                         compare_cols = NULL,
+                         keep_duplicities = TRUE,
+                         verbose = TRUE){
     eqs <- create_var_list(eq, "=")
     eq_sub <- create_var_list(eq_sub, "=s")
     eq_tols <- create_var_list(eq_tol, "~")
@@ -90,63 +143,103 @@ find_similar <- function(conn, t1, t2, row,
     ltes <- create_var_list(lte, "<=")
 
     # get values for comparison
-    query_vars <- c(eqs, eq_sub, eq_tols, hts, lts, htes, ltes)
-    query_value <- function(conn, t1, row, var){
-        var$value <- RSQLite::dbGetQuery(conn,
-                                paste0("select ", var$column, " from ", t1,
-                                       " WHERE row_id = :row"),
-                   params = list(row = row))[[1]]
-        if(is.numeric(var$value)){
-            var$type <- "number"
-        }else{
-            var$type <- "text"
-        }
-        var
-    }
-    var_values <- lapply(query_vars, function(x) query_value(conn, t1, row, x))
+    vars <- c(eqs, eq_sub, eq_tols, hts, lts, htes, ltes)
+    query_vars <- insert_query_values(source, row, vars)
 
     # construct the query
-    query <- paste0('SELECT row_id FROM ',
-                    t2,
-                    ' WHERE ',
-                    paste0(unlist(lapply(var_values, create_query_filter)), collapse = " AND "))
+    filter_query <- create_filter(query_vars)
 
-    tmp <- RSQLite::dbGetQuery(conn, query)$row_id
-    tmp <- ifelse(length(tmp) == 0, NA, tmp)
-    # make column
-    data.frame(from = row, to = tmp)
+    tmp <- dplyr::filter_(target, filter_query)
 
+    if(nrow(tmp) > 1){
+        if(!keep_duplicities){
+            common_cols <- intersect(colnames(source), colnames(target))
+            if(!is.null(compare_cols)){
+                common_cols <- intersect(compare_cols, common_cols)
+            }
+            original <- dplyr::select(source[row, ], !!common_cols)
+            similars <- dplyr::select(tmp, !!common_cols)
+
+            p_similarity <- rimr::calculate_similarity_between_persons(original,
+                                                                       similars)
+            tmp <- tmp[which.max(p_similarity), ]
+        }
+    }
+
+    if(verbose && row %% 250 == 0){
+        cat(row, "\n")
+    }
+
+    if(nrow(tmp) == 0){
+        data.frame(from = row,
+                   to = NA)
+    }else{
+        ids <- `[[`(dplyr::select(tmp, !!id), 1)
+        data.frame(from = row,
+                   to = ids)
+    }
+
+}
+
+create_values_list <- function(missing_rows){
+    paste0(unlist(purrr::map(missing_rows, function(x) paste0("(", x, ")"))), collapse = ", ")
 }
 
 #' Find all matches between tables t1 and t2 and add candidates who did not run in the
 #' sequential election with missing values
-#' @param conn Connection to SQL database in which the data are stored
-#' @param t1 Name of the first table
-#' @param t2 Name of the second table
-#' @param ... Vectors containing variables for comparison (see find_similar)
+#'
 #' @export
-find_all_similar <- function(conn, t1, t2, ...){
+#' @param source Name of the first table
+#' @param target Name of the second table
+#' @param start From which row the comparison should be made
+#' @param cores Number of cores to be used for computation
+#' @param ... Vectors containing variables for comparison (see find_similar)
+find_all_similar <- function(source,
+                             target,
+                             start = 1,
+                             cores = 1,
+                             ...){
+    call <- as.list(match.call())
+    col_names <- as.character(c(call$source, call$target))
     #' Find all matches between first and second table
+    rows1 <- nrow(source)
 
-    rows1 <- RSQLite::dbGetQuery(conn, paste0("SELECT COUNT(row_id) FROM ", t1))[[1]]
-    similars <- purrr::map(1:rows1, function(x) find_similar(conn, t1, t2, x, ...))
-    out <- do.call(rbind, similars)
+    out <- parallel::mclapply(start:rows1,
+                              function(x) find_similar(source, target, x, ...),
+                              mc.cores = cores)
 
-    #' Find all newly running candidates (who are not in the first table)
-    #' and add them to output
-    rows2 <- RSQLite::dbGetQuery(conn, paste0("SELECT COUNT(row_id) FROM ", t2))[[1]]
-    missing_rows <- 1:rows2
-    missing_rows <- missing_rows[!missing_rows %in% out$to]
-    if(length(missing_rows) > 0){
-        out2 <- data.frame(from = NA,
-                           to = missing_rows)
-        tmp <- rbind(out, out2)
-        colnames(tmp) <- c(t1, t2)
-        tmp
-    }else{
-        colnames(out) <- c(t1, t2)
-        out
-    }
+    out <- do.call(rbind, out)
+    colnames(out) <- col_names
+    out
+
+}
+
+#' Find IDs of entitites from target that does not occur in output
+#'
+#' @export
+#' @param target data.frame with target data
+#' @param target_ids column name of IDs in target data.frame
+#' @param out output returned by find_all_similar function
+find_missing <- function(target, target_ids, out){
+    missing_from_target <- target[[target_ids]]
+    missing_from_target <- missing_from_target[!missing_from_target %in% out[[ncol(out)]]]
+
+    data.frame(from = NA,
+               to = missing_from_target)
+
+    #rbind(out, tmp)
+}
+
+#' Append missing entities to output
+#'
+#' @export
+#' @param target data.frame with target data
+#' @param target_ids column name of IDs in target data.frame
+#' @param out output returned by find_all_similar function
+append_missing <- function(target, target_ids, out){
+    missing <- find_missing(target, target_ids, out)
+    colnames(missing) <- colnames(out)
+    rbind(out, missing)
 }
 
 # TODO: Define recursive matching for sequence of election
@@ -156,18 +249,26 @@ find_all_similar <- function(conn, t1, t2, ...){
 
 #' Create tidy output
 #'
-#' @param output_df Data.frame resulting from find_all_similar
-create_tidy_output <- function(output_df){
-    output_df$person_id <- 1:nrow(output_df)
+#' @export
+#' @param output Data.frame resulting from find_all_similar
+#' @param id Name of column containing IDs which will be created
+create_panel_output <- function(output, id = "id"){
+    output[[id]] <- 1:nrow(output)
     # reorder columns so that the person_id is the first and then the rest
-    output_df <- output_df[c(ncol(output_df), 2:ncol(output_df) - 1)]
+    output <- dplyr::select(output, !!id, dplyr::everything())
 
-    iter <- tidyr::gather(output_df, "col", "row_id", 2:ncol(output_df))
-    iter <- iter[!is.na(iter$row_id), ]
+    iter <- tidyr::gather(output, "data", "row", 2:ncol(output))
+    iter <- iter[!is.na(iter$row), ]
 
-    dplyr::bind_rows(purrr::map(1:nrow(iter), function(x)
-        cbind(dbGetQuery(con, paste0("SELECT * FROM ", iter$col[x],
-                                     " WHERE row_id = ", iter$row_id[x])),
-              data.frame(person_id = iter$person_id[x],
-                         election_id = iter$col[x]))))
+    t_iter <- purrr::transpose(iter)
+
+    out <- dplyr::bind_rows(lapply(t_iter, function(x) get_record(x, id)))
+    dplyr::select(out, !!id, dplyr::everything())
+}
+
+get_record <- function(iter, id){
+    data <- eval(as.name(iter$data))
+    tmp <- data[iter$row, ]
+    tmp[[id]] <- iter[[id]]
+    tmp
 }

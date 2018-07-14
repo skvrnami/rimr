@@ -5,15 +5,14 @@
 \title{Find match between one person from the first dataset (t1) and
 the whole second dataset (t2)}
 \usage{
-find_similar(conn, t1, t2, row, eq = NULL, eq_tol = NULL, eq_sub = NULL,
-  ht = NULL, lt = NULL, hte = NULL, lte = NULL)
+find_similar(source, target, row, eq = NULL, eq_tol = NULL, eq_sub = NULL,
+  ht = NULL, lt = NULL, hte = NULL, lte = NULL, id = "row_id",
+  compare_cols = NULL, keep_duplicities = TRUE, verbose = TRUE)
 }
 \arguments{
-\item{conn}{Connection to SQL database in which the data are stored}
+\item{source}{Name of the first table}
 
-\item{t1}{Name of the first table}
-
-\item{t2}{Name of the second table}
+\item{target}{Name of the second table}
 
 \item{row}{Row from the first table for which similar person is searched}
 
@@ -32,6 +31,8 @@ in t1 and t2 within specified range (tolerance)}
 \item{hte}{Vector of variables which should be higher or equal in t1}
 
 \item{lte}{Vector of variables which should be lower or equal in t1}
+
+\item{verbose}{Specify if you want to display message for every 250th row}
 }
 \description{
 Find match between one person from the first dataset (t1) and

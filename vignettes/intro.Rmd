@@ -1,0 +1,99 @@
+---
+title: "rimr: Package for deterministic record linkage"
+author: "Michael Škvrňák"
+date: "`r Sys.Date()`"
+output: rmarkdown::html_vignette
+vignette: >
+  %\VignetteIndexEntry{Vignette Title}
+  %\VignetteEngine{knitr::rmarkdown}
+  %\VignetteEncoding{UTF-8}
+---
+
+# Load data
+```{r}
+library(dplyr)
+library(rimr)
+
+load("../data/kraj_2000.RData")
+load("../data/kraj_2004.RData")
+
+kraj_2000$last_name <- gsub("l'", "ĺ", kraj_2000$last_name)
+kraj_2004$last_name <- gsub("l'", "ĺ", kraj_2004$last_name)
+
+kraj_2000$year <- 2000
+kraj_2004$year <- 2004
+
+kraj_2000 <- kraj_2000[1:100, ]
+
+head(kraj_2000)
+```
+
+# Find similar
+The comparison of records works by taking a row from the source dataset
+and looking for record in the target dataset which fulfils conditions
+specified by arguments `eq` (equality), `ht`, `lt`, `hte`, `lte`, `eq_tol`,
+`eq_sub`.
+
+```{r}
+
+sim1 <- find_similar(source = kraj_2000, 
+             target = kraj_2004, 
+             row = 1, 
+             id = "row_id",
+             eq = c("first_name", "last_name", "approx_birth_year", 
+                    "residence", "region"), 
+             keep_duplicities = FALSE,
+             verbose = FALSE)
+```
+
+Depending on the conditions, it is possible that there are more than 1 records
+fulfilling the conditions. For this reason, you can set the parameter
+`keep_duplicities` to FALSE and only the record which shares the most attributes
+with the original record will be recorded. You can set the columns used
+for finding the most similar using parameter `compare_cols`.  
+
+While the `find_similar` function compares only 1 row, there is a wrapper
+function called `find_all_similar` which accepts all parameters passed to
+`find_similar` and you can also specify how many `cores` should be used
+for computation (using parallel package so applicable only for UNIX).
+
+```{r}
+df <- find_all_similar(source = kraj_2000, 
+                       target = kraj_2004, 
+                       id = "row_id", 
+                       eq = c("first_name", "last_name", "approx_birth_year",
+                              "residence", "region"), 
+                       verbose = FALSE, 
+                       cores = 1)
+```
+
+The output of the comparison is pivot table which contains
+number of rows from source and target dataset for matching 
+entities. 
+
+```{r}
+head(df)
+```
+
+The output contains all of the records from the source dataset
+and those records that match with any of the records from the source.
+To append the entities from target dataset which do not occur in the 
+source dataset use `append_missing` function.
+
+```{r, eval=FALSE}
+out <- append_missing(target = kraj_2004, 
+                      target_ids = "row_id", 
+                      out = df)
+```
+
+Obviously, pivot table is not usually a desired product of comparison. 
+Therefore, you can create panel data from the output by calling 
+`create_panel_output` which combines source and target datasets
+using the output of comparison and adds unique IDs to the entities.
+
+```{r}
+panel_data <- create_panel_output(df, id = "person_id")
+
+panel_data %>% dplyr::arrange(person_id) %>% head
+```
+
