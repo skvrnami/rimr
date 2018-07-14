@@ -87,22 +87,6 @@ insert_query_values <- function(source, row, vars){
     new_vars
 }
 
-create_var_list <- function(x, operation){
-    if (operation == "~"){
-        lapply(x, function(y) list(column = y[[1]],
-                                   operation = operation,
-                                   value = NA,
-                                   type = NA,
-                                   tolerance = as.numeric(y[[2]])))
-    }else{
-        lapply(x, function(y) list(column = y,
-                                   operation = operation,
-                                   value = NA,
-                                   type = NA,
-                                   tolerance = NA))
-    }
-}
-
 
 #' Calculate similarity between persons
 #'
