@@ -90,6 +90,7 @@ insert_query_values <- function(source, row, vars){
 
 #' Calculate similarity between persons
 #'
+#' @param export
 #' @param original Data.frame with all data about original person
 #' @param similar Data.frame with all data about similar persons
 #' Calculate in how many columns the data about the persons match (strictly equals)
@@ -192,20 +193,31 @@ create_values_list <- function(missing_rows){
 #' @param source Name of the first table
 #' @param target Name of the second table
 #' @param start From which row the comparison should be made
+#' @param id Column in source and target datasets containing ID of a row
 #' @param cores Number of cores to be used for computation
 #' @param ... Vectors containing variables for comparison (see find_similar)
 find_all_similar <- function(source,
                              target,
                              start = 1,
                              cores = 1,
+                             id,
                              ...){
+
+    if(!id %in% colnames(source)){
+        stop("The column of row IDs is missing in the source dataset")
+    }
+
+    if(!id %in% colnames(target)){
+        stop("The column of row IDs is missing in the target dataset")
+    }
+
     call <- as.list(match.call())
     col_names <- as.character(c(call$source, call$target))
     #' Find all matches between first and second table
     rows1 <- nrow(source)
 
     out <- parallel::mclapply(start:rows1,
-                              function(x) find_similar(source, target, x, ...),
+                              function(x) find_similar(source, target, x, id, ...),
                               mc.cores = cores)
 
     out <- do.call(rbind, out)
