@@ -61,8 +61,9 @@ for computation (using parallel package so applicable only for UNIX).
 df <- find_all_similar(source = kraj_2000, 
                        target = kraj_2004, 
                        id = "row_id", 
-                       eq = c("first_name", "last_name", "approx_birth_year",
+                       eq = c("first_name", "last_name",
                               "residence", "region"), 
+                       eq_tol = list(c("approx_birth_year", 1)), 
                        verbose = FALSE, 
                        cores = 1)
 ```
