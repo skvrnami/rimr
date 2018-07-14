@@ -91,7 +91,7 @@ Therefore, you can create panel data from the output by calling
 using the output of comparison and adds unique IDs to the entities.
 
 ```{r}
-panel_data <- create_panel_output(out, id = "person_id")
+panel_data <- create_panel_output(df, id = "person_id")
 
 panel_data %>% dplyr::arrange(person_id) %>% head
 ```
