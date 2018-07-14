@@ -29,9 +29,34 @@ test_that("adding quotation marks works", {
 
 test_that("constructing predicate works", {
     expect_equal(construct_predicate("first_name", "==", "Karel"),
-                 glue::glue("first_name == 'Karel'"))
+                 "first_name == 'Karel'")
     expect_equal(construct_predicate("last_name", "=s", "Nováková"),
-                 glue::glue("grepl('Nováková', last_name)"))
+                 "grepl('Nováková', last_name)")
 })
 
+qv1 <- list(column = "first_name",
+            operation = "=",
+            value = "Karel",
+            type = NA,
+            tolerance = NA)
+qv2 <- list(column = "year",
+            operation = "~",
+            value = 1990,
+            type = NA,
+            tolerance = 1)
+qv3 <- list(column = "year",
+            operation = ">",
+            value = 1990,
+            type = NA,
+            tolerance = 1)
+test_that("creating predicate works", {
+    expect_equal(create_predicate_from_query_var(qv1)$predicate,
+                 "first_name == 'Karel'")
+    expect_equal(create_predicate_from_query_var(qv1)$name,
+                 "first_name")
+    expect_equal(create_predicate_from_query_var(qv2)$predicate,
+                 "year >= 1989&year <= 1991")
+    expect_equal(create_predicate_from_query_var(qv3)$predicate,
+                 "year > 1990")
+})
 

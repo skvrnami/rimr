@@ -35,10 +35,10 @@ add_q_marks.numeric <- function(value){
 
 construct_predicate <- function(var, operation, value){
     if(operation != "=s"){
-        glue::glue("{var} {operation} {value}",
-                   value = add_q_marks(value))
+        as.character(glue::glue("{var} {operation} {value}",
+                                value = add_q_marks(value)))
     }else{
-        glue::glue("grepl('{value}', {var})")
+        as.character(glue::glue("grepl('{value}', {var})"))
     }
 
 }
@@ -69,10 +69,6 @@ create_filter <- function(query_vars, collapse_sign = "&"){
 }
 
 
-get_var_column <- function(var){
-    var$column
-}
-
 insert_value_and_type <- function(var, value){
     var$value <- value
     if(is.numeric(var$value)){
@@ -85,7 +81,7 @@ insert_value_and_type <- function(var, value){
 
 #' insert query values into variable list
 insert_query_values <- function(source, row, vars){
-    select_vars <- unlist(lapply(vars, get_var_column))
+    select_vars <- unlist(lapply(vars, function(x) x$column))
     var_values <- dplyr::select(source[row, ], !!select_vars)
     new_vars <- purrr::map2(vars, var_values, function(x, y) insert_value_and_type(x, y))
     new_vars
