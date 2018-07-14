@@ -86,8 +86,7 @@ insert_value_and_type <- function(var, value){
 #' insert query values into variable list
 insert_query_values <- function(source, row, vars){
     select_vars <- unlist(lapply(vars, get_var_column))
-    var_values <- source[row, ] %>%
-        dplyr::select(!!select_vars)
+    var_values <- dplyr::select(source[row, ], !!select_vars)
     new_vars <- purrr::map2(vars, var_values, function(x, y) insert_value_and_type(x, y))
     new_vars
 }
@@ -116,10 +115,10 @@ create_var_list <- function(x, operation){
 #' Calculate in how many columns the data about the persons match (strictly equals)
 calculate_similarity_between_persons <- function(original, similar){
     #' TODO: use other comparison than strict equality
-    purrr::map(purrr::transpose(similar), function(x) {
+    unlist(purrr::map(purrr::transpose(similar), function(x) {
         sum(unlist(purrr::map2(original, x, function(y, z) {
             y == z})), na.rm = TRUE)
-    }) %>% unlist
+    }))
 }
 
 
@@ -195,7 +194,7 @@ find_similar <- function(source,
         data.frame(from = row,
                    to = NA)
     }else{
-        ids <- tmp %>% dplyr::select(!!id) %>% `[[`(., 1)
+        ids <- `[[`(dplyr::select(tmp, !!id), 1)
         data.frame(from = row,
                    to = ids)
     }
@@ -273,11 +272,10 @@ append_missing <- function(target, target_ids, out){
 #' @export
 #' @param output Data.frame resulting from find_all_similar
 #' @param id Name of column containing IDs which will be created
-#' @importFrom dplyr "%>%"
 create_panel_output <- function(output, id = "id"){
     output[[id]] <- 1:nrow(output)
     # reorder columns so that the person_id is the first and then the rest
-    output <- output %>% dplyr::select(!!id, dplyr::everything())
+    output <- dplyr::select(output, !!id, dplyr::everything())
 
     iter <- tidyr::gather(output, "data", "row", 2:ncol(output))
     iter <- iter[!is.na(iter$row), ]
@@ -285,11 +283,11 @@ create_panel_output <- function(output, id = "id"){
     t_iter <- purrr::transpose(iter)
 
     out <- dplyr::bind_rows(lapply(t_iter, function(x) get_record(x, id)))
-    out %>% dplyr::select(!!id, dplyr::everything())
+    dplyr::select(out, !!id, dplyr::everything())
 }
 
 get_record <- function(iter, id){
-    data <- iter$data %>% as.name %>% eval
+    data <- eval(as.name(iter$data))
     tmp <- data[iter$row, ]
     tmp[[id]] <- iter[[id]]
     tmp
