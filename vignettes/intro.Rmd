@@ -62,7 +62,7 @@ df <- find_all_similar(source = kraj_2000,
                        eq = c("first_name", "last_name", "approx_birth_year",
                               "residence", "region"), 
                        verbose = FALSE, 
-                       cores = 4)
+                       cores = 1)
 ```
 
 The output of the comparison is pivot table which contains
