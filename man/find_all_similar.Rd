@@ -5,7 +5,7 @@
 \title{Find all matches between tables t1 and t2 and add candidates who did not run in the
 sequential election with missing values}
 \usage{
-find_all_similar(source, target, start = 1, cores = 1, ...)
+find_all_similar(source, target, start = 1, cores = 1, id, ...)
 }
 \arguments{
 \item{source}{Name of the first table}
@@ -15,6 +15,8 @@ find_all_similar(source, target, start = 1, cores = 1, ...)
 \item{start}{From which row the comparison should be made}
 
 \item{cores}{Number of cores to be used for computation}
+
+\item{id}{Column in source and target datasets containing ID of a row}
 
 \item{...}{Vectors containing variables for comparison (see find_similar)
 Find all matches between first and second table}

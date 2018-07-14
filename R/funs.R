@@ -105,6 +105,7 @@ calculate_similarity_between_persons <- function(original, similar){
 #' Find match between one person from the first dataset (t1) and
 #' the whole second dataset (t2)
 #'
+#' @export
 #' @param source Name of the first table
 #' @param target Name of the second table
 #' @param row Row from the first table for which similar person is searched
@@ -117,9 +118,9 @@ calculate_similarity_between_persons <- function(original, similar){
 #' @param lt Vector of variables which should be lower in t1
 #' @param hte Vector of variables which should be higher or equal in t1
 #' @param lte Vector of variables which should be lower or equal in t1
+#' @param id Column in source and target datasets containing ID of a row
+#' @param compare_cols Columns to be used for comparison to remove duplicates
 #' @param verbose Specify if you want to display message for every 250th row
-#'
-#' @export find_similar
 find_similar <- function(source,
                          target,
                          row,
@@ -216,7 +217,10 @@ find_all_similar <- function(source,
     rows1 <- nrow(source)
 
     out <- parallel::mclapply(start:rows1,
-                              function(x) find_similar(source, target, x, id, ...),
+                              function(x) find_similar(source = source,
+                                                       target = target,
+                                                       row = x,
+                                                       id = id, ...),
                               mc.cores = cores)
 
     out <- do.call(rbind, out)

@@ -32,6 +32,10 @@ in t1 and t2 within specified range (tolerance)}
 
 \item{lte}{Vector of variables which should be lower or equal in t1}
 
+\item{id}{Column in source and target datasets containing ID of a row}
+
+\item{compare_cols}{Columns to be used for comparison to remove duplicates}
+
 \item{verbose}{Specify if you want to display message for every 250th row}
 }
 \description{
