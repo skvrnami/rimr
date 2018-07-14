@@ -22,6 +22,8 @@ kraj_2004$last_name <- gsub("l'", "ĺ", kraj_2004$last_name)
 kraj_2000$year <- 2000
 kraj_2004$year <- 2004
 
+kraj_2000 <- kraj_2000[1:100, ]
+
 head(kraj_2000)
 ```
 
@@ -77,7 +79,7 @@ and those records that match with any of the records from the source.
 To append the entities from target dataset which do not occur in the 
 source dataset use `append_missing` function.
 
-```{r}
+```{r, eval=FALSE}
 out <- append_missing(target = kraj_2004, 
                       target_ids = "row_id", 
                       out = df)
