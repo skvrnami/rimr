@@ -8,6 +8,8 @@ create_panel_output(output, id = "id")
 }
 \arguments{
 \item{output}{Data.frame resulting from find_all_similar}
+
+\item{id}{Name of column containing IDs which will be created}
 }
 \description{
 Create tidy output

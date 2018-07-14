@@ -209,12 +209,12 @@ create_values_list <- function(missing_rows){
 #' Find all matches between tables t1 and t2 and add candidates who did not run in the
 #' sequential election with missing values
 #'
+#' @export
 #' @param source Name of the first table
 #' @param target Name of the second table
 #' @param start From which row the comparison should be made
 #' @param cores Number of cores to be used for computation
 #' @param ... Vectors containing variables for comparison (see find_similar)
-#' @export find_all_similar
 find_all_similar <- function(source,
                              target,
                              start = 1,
@@ -237,10 +237,10 @@ find_all_similar <- function(source,
 
 #' Find IDs of entitites from target that does not occur in output
 #'
+#' @export
 #' @param target data.frame with target data
 #' @param target_ids column name of IDs in target data.frame
 #' @param out output returned by find_all_similar function
-#' @export find_missing
 find_missing <- function(target, target_ids, out){
     missing_from_target <- target[[target_ids]]
     missing_from_target <- missing_from_target[!missing_from_target %in% out[[ncol(out)]]]
@@ -253,10 +253,10 @@ find_missing <- function(target, target_ids, out){
 
 #' Append missing entities to output
 #'
+#' @export
 #' @param target data.frame with target data
 #' @param target_ids column name of IDs in target data.frame
 #' @param out output returned by find_all_similar function
-#' @export append_missing
 append_missing <- function(target, target_ids, out){
     missing <- find_missing(target, target_ids, out)
     colnames(missing) <- colnames(out)
@@ -270,7 +270,10 @@ append_missing <- function(target, target_ids, out){
 
 #' Create tidy output
 #'
+#' @export
 #' @param output Data.frame resulting from find_all_similar
+#' @param id Name of column containing IDs which will be created
+#' @importFrom dplyr "%>%"
 create_panel_output <- function(output, id = "id"){
     output[[id]] <- 1:nrow(output)
     # reorder columns so that the person_id is the first and then the rest

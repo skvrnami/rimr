@@ -16,7 +16,8 @@ find_all_similar(source, target, start = 1, cores = 1, ...)
 
 \item{cores}{Number of cores to be used for computation}
 
-\item{...}{Vectors containing variables for comparison (see find_similar)}
+\item{...}{Vectors containing variables for comparison (see find_similar)
+Find all matches between first and second table}
 }
 \description{
 Find all matches between tables t1 and t2 and add candidates who did not run in the
