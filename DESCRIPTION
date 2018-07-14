@@ -8,8 +8,11 @@ Description: Package for deterministic record linkage in R.
 License: MIT
 Encoding: UTF-8
 LazyData: true
-Suggests: testthat
-Imports: 
+Suggests: testthat,
+    knitr,
+    rmarkdown
+Imports:
     dplyr, 
     parallel
 RoxygenNote: 6.0.1
+VignetteBuilder: knitr

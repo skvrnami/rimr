@@ -1,6 +1,6 @@
 # rimr
 
-:construction:
+:construction: 
 
 [![Build Status](https://travis-ci.org/skvrnami/rimr.svg?branch=master)](https://travis-ci.org/skvrnami/rimr)
 

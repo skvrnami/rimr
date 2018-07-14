@@ -5,3 +5,4 @@
 .DS_Store
 data/municipal_*.csv
 example_municipal.R
+inst/doc
