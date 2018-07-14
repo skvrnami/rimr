@@ -10,6 +10,10 @@ find_similar(source, target, row, eq = NULL, eq_tol = NULL, eq_sub = NULL,
   compare_cols = NULL, keep_duplicities = TRUE, verbose = TRUE)
 }
 \arguments{
+\item{source}{Name of the first table}
+
+\item{target}{Name of the second table}
+
 \item{row}{Row from the first table for which similar person is searched}
 
 \item{eq}{Vector of variables which should be equal in t1 and t2}
@@ -28,9 +32,7 @@ in t1 and t2 within specified range (tolerance)}
 
 \item{lte}{Vector of variables which should be lower or equal in t1}
 
-\item{t1}{Name of the first table}
-
-\item{t2}{Name of the second table}
+\item{verbose}{Specify if you want to display message for every 250th row}
 }
 \description{
 Find match between one person from the first dataset (t1) and

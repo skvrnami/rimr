@@ -11,7 +11,7 @@ find_missing(target, target_ids, out)
 
 \item{target_ids}{column name of IDs in target data.frame}
 
-\item{out}{output returned by find_all_similar}
+\item{out}{output returned by find_all_similar function}
 }
 \description{
 Find IDs of entitites from target that does not occur in output

@@ -8,15 +8,15 @@ sequential election with missing values}
 find_all_similar(source, target, start = 1, cores = 1, ...)
 }
 \arguments{
+\item{source}{Name of the first table}
+
+\item{target}{Name of the second table}
+
 \item{start}{From which row the comparison should be made}
 
+\item{cores}{Number of cores to be used for computation}
+
 \item{...}{Vectors containing variables for comparison (see find_similar)}
-
-\item{conn}{Connection to SQL database in which the data are stored}
-
-\item{t1}{Name of the first table}
-
-\item{t2}{Name of the second table}
 }
 \description{
 Find all matches between tables t1 and t2 and add candidates who did not run in the

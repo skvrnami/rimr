@@ -4,12 +4,12 @@
 \alias{calculate_similarity_between_persons}
 \title{Calculate similarity between persons}
 \usage{
-calculate_similarity_between_persons(original_person, similar_persons)
+calculate_similarity_between_persons(original, similar)
 }
 \arguments{
-\item{original_person}{Data.frame with all data about original person}
+\item{original}{Data.frame with all data about original person}
 
-\item{similar_person}{Data.frame with all data about similar persons
+\item{similar}{Data.frame with all data about similar persons
 Calculate in how many columns the data about the persons match (strictly equals)
 TODO: use other comparison than strict equality}
 }

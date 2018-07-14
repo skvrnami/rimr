@@ -61,15 +61,6 @@ create_predicate_from_query_var <- function(query_var){
     }
 }
 
-# collapse_vars <- function(x){
-#     names <- lapply(x, function(y) y$name)
-#     predicate <- lapply(x, function(y) y$predicate)
-#     out <- purrr::map2(names, predicate, function(x, y) {
-#         list(y)
-#     })
-#     names(out) <- names
-#     out
-# }
 
 create_filter <- function(query_vars, collapse_sign = "&"){
     vars <- lapply(query_vars, create_predicate_from_query_var)
@@ -120,13 +111,13 @@ create_var_list <- function(x, operation){
 
 #' Calculate similarity between persons
 #'
-#' @param original_person Data.frame with all data about original person
-#' @param similar_person Data.frame with all data about similar persons
+#' @param original Data.frame with all data about original person
+#' @param similar Data.frame with all data about similar persons
 #' Calculate in how many columns the data about the persons match (strictly equals)
-calculate_similarity_between_persons <- function(original_person, similar_persons){
+calculate_similarity_between_persons <- function(original, similar){
     #' TODO: use other comparison than strict equality
-    purrr::map(purrr::transpose(similar_persons), function(x) {
-        sum(unlist(purrr::map2(original_person, x, function(y, z) {
+    purrr::map(purrr::transpose(similar), function(x) {
+        sum(unlist(purrr::map2(original, x, function(y, z) {
             y == z})), na.rm = TRUE)
     }) %>% unlist
 }
@@ -134,8 +125,9 @@ calculate_similarity_between_persons <- function(original_person, similar_person
 
 #' Find match between one person from the first dataset (t1) and
 #' the whole second dataset (t2)
-#' @param t1 Name of the first table
-#' @param t2 Name of the second table
+#'
+#' @param source Name of the first table
+#' @param target Name of the second table
 #' @param row Row from the first table for which similar person is searched
 #' @param eq Vector of variables which should be equal in t1 and t2
 #' @param eq_tol Vector of variables which should be approximately equal
@@ -146,19 +138,23 @@ calculate_similarity_between_persons <- function(original_person, similar_person
 #' @param lt Vector of variables which should be lower in t1
 #' @param hte Vector of variables which should be higher or equal in t1
 #' @param lte Vector of variables which should be lower or equal in t1
-#' @export
-find_similar <- function(source, target, row,
-                               eq = NULL,
-                               eq_tol = NULL,
-                               eq_sub = NULL,
-                               ht = NULL,
-                               lt = NULL,
-                               hte = NULL,
-                               lte = NULL,
-                               id = "row_id",
-                               compare_cols = NULL,
-                               keep_duplicities = TRUE,
-                               verbose = TRUE){
+#' @param verbose Specify if you want to display message for every 250th row
+#'
+#' @export find_similar
+find_similar <- function(source,
+                         target,
+                         row,
+                         eq = NULL,
+                         eq_tol = NULL,
+                         eq_sub = NULL,
+                         ht = NULL,
+                         lt = NULL,
+                         hte = NULL,
+                         lte = NULL,
+                         id = "row_id",
+                         compare_cols = NULL,
+                         keep_duplicities = TRUE,
+                         verbose = TRUE){
     eqs <- create_var_list(eq, "=")
     eq_sub <- create_var_list(eq_sub, "=s")
     eq_tols <- create_var_list(eq_tol, "~")
@@ -212,13 +208,18 @@ create_values_list <- function(missing_rows){
 
 #' Find all matches between tables t1 and t2 and add candidates who did not run in the
 #' sequential election with missing values
-#' @param conn Connection to SQL database in which the data are stored
-#' @param t1 Name of the first table
-#' @param t2 Name of the second table
+#'
+#' @param source Name of the first table
+#' @param target Name of the second table
 #' @param start From which row the comparison should be made
+#' @param cores Number of cores to be used for computation
 #' @param ... Vectors containing variables for comparison (see find_similar)
-#' @export
-find_all_similar <- function(source, target, start = 1, cores = 1, ...){
+#' @export find_all_similar
+find_all_similar <- function(source,
+                             target,
+                             start = 1,
+                             cores = 1,
+                             ...){
     call <- as.list(match.call())
     col_names <- as.character(c(call$source, call$target))
     #' Find all matches between first and second table
@@ -238,8 +239,8 @@ find_all_similar <- function(source, target, start = 1, cores = 1, ...){
 #'
 #' @param target data.frame with target data
 #' @param target_ids column name of IDs in target data.frame
-#' @param out output returned by find_all_similar
-#' @export
+#' @param out output returned by find_all_similar function
+#' @export find_missing
 find_missing <- function(target, target_ids, out){
     missing_from_target <- target[[target_ids]]
     missing_from_target <- missing_from_target[!missing_from_target %in% out[[ncol(out)]]]
@@ -254,8 +255,8 @@ find_missing <- function(target, target_ids, out){
 #'
 #' @param target data.frame with target data
 #' @param target_ids column name of IDs in target data.frame
-#' @param out output returned by find_all_similar
-#' @export
+#' @param out output returned by find_all_similar function
+#' @export append_missing
 append_missing <- function(target, target_ids, out){
     missing <- find_missing(target, target_ids, out)
     colnames(missing) <- colnames(out)
