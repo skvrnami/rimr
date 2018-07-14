@@ -90,7 +90,6 @@ insert_query_values <- function(source, row, vars){
 
 #' Calculate similarity between persons
 #'
-#' @param export
 #' @param original Data.frame with all data about original person
 #' @param similar Data.frame with all data about similar persons
 #' Calculate in how many columns the data about the persons match (strictly equals)
@@ -161,8 +160,8 @@ find_similar <- function(source,
             original <- dplyr::select(source[row, ], !!common_cols)
             similars <- dplyr::select(tmp, !!common_cols)
 
-            p_similarity <- rimr::calculate_similarity_between_persons(original,
-                                                                       similars)
+            p_similarity <- calculate_similarity_between_persons(original,
+                                                                 similars)
             tmp <- tmp[which.max(p_similarity), ]
         }
     }
