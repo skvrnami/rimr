@@ -71,11 +71,14 @@ test_that("calculating similarity works", {
 })
 
 vars <- create_var_list(c("first_name", "last_name"), "=")
+vars2 <- create_var_list(c("birth_year"), "=")
 test_that("inserting query values works", {
     expect_equal(insert_query_values(original, 1, vars)[[1]]$value,
                  "Karel")
     expect_equal(insert_query_values(original, 1, vars)[[2]]$value,
                  "Novák")
+    expect_equal(insert_query_values(original, 1, vars2)[[1]]$value,
+                 1980)
 })
 
 
@@ -86,3 +89,23 @@ test_that("creating filter returns expected output", {
                  "first_name == 'Karel'&last_name == 'Novák'")
 })
 
+original2 <- original
+original2$row_id <- 1
+test_that("find_all_similar fails if column with IDs is missing", {
+    expect_error(find_all_similar(original, similar, id = "row_id"),
+                 message = "The column of row IDs is missing in the source dataset")
+    expect_error(find_all_similar(original2, similar, id = "row_id"),
+                 message = "The column of row IDs is missing in the target dataset ")
+})
+
+original$row_id <- 1
+similar$row_id <- 1:nrow(similar)
+test_that("find_similar returns expected result", {
+    expect_equal(find_similar(original, similar, 1, eq = c("first_name", "last_name"), id = "row_id"),
+                 data.frame(from = 1, to = 1))
+})
+
+test_that("find_all_similar returns expected result", {
+    expect_equal(find_all_similar(original, similar, 1, eq = c("first_name", "last_name"), id = "row_id"),
+                 data.frame(original = 1, similar = 1))
+})
