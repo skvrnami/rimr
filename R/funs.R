@@ -172,11 +172,11 @@ find_similar <- function(source,
     }
 
     if(nrow(tmp) == 0){
-        data.frame(from = row,
+        data.frame(from = source[[id]][row],
                    to = NA)
     }else{
         ids <- `[[`(dplyr::select(tmp, !!id), 1)
-        data.frame(from = row,
+        data.frame(from = source[[id]][row],
                    to = ids)
     }
 
@@ -232,9 +232,9 @@ find_all_similar <- function(source,
 #' @param target data.frame with target data
 #' @param target_ids column name of IDs in target data.frame
 #' @param out output returned by find_all_similar function
-find_missing <- function(target, target_ids, out){
+find_missing <- function(target, target_ids, found_ids){
     missing_from_target <- target[[target_ids]]
-    missing_from_target <- missing_from_target[!missing_from_target %in% out[[ncol(out)]]]
+    missing_from_target <- missing_from_target[!missing_from_target %in% found_ids]
 
     data.frame(from = NA,
                to = missing_from_target)
@@ -248,8 +248,10 @@ find_missing <- function(target, target_ids, out){
 #' @param target data.frame with target data
 #' @param target_ids column name of IDs in target data.frame
 #' @param out output returned by find_all_similar function
-append_missing <- function(target, target_ids, out){
-    missing <- find_missing(target, target_ids, out)
+#' @param found_ids vector containing IDs from target which has
+#' been found in the source dataset
+append_missing <- function(target, target_ids, out, found_ids){
+    missing <- find_missing(target, target_ids, found_ids)
     colnames(missing) <- colnames(out)
     rbind(out, missing)
 }
@@ -284,3 +286,33 @@ get_record <- function(iter, id){
     tmp[[id]] <- iter[[id]]
     tmp
 }
+
+
+#' Return data of entities which occur in target dataset but not in source dataset
+#'
+#' @export
+#' @param target target dataset
+#' @param row_id Column name of row IDs
+#' @param missing result of find_missing function
+return_missing_data <- function(target, row_id, missing){
+    missing_ids <- missing[["to"]]
+    select_missing <- target[[row_id]] %in% missing_ids
+    target[select_missing, ]
+}
+
+
+#' Return data of entities that occur in the source dataset but not in the target
+#'
+#' @export
+#' @param result result of find_all_similar function
+#' @param source source dataset
+#' @param target target dataset
+#' @param row_id Column name of row IDs
+return_nonconsecutive_data <- function(result, source, target, row_id){
+    args <- as.list(match.call())
+    res_pivot <- result[is.na(result[[as.character(args$target)]]), ]
+    noncons_ids <- res_pivot[[as.character(args$source)]]
+    select_ids <- source[[row_id]] %in% noncons_ids
+    source[select_ids, ]
+}
+

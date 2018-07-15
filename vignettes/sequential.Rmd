@@ -1,0 +1,117 @@
+---
+title: "Sequential matching"
+author: "Michael Škvrňák"
+date: "`r Sys.Date()`"
+output: rmarkdown::html_vignette
+vignette: >
+  %\VignetteIndexEntry{Vignette Title}
+  %\VignetteEngine{knitr::rmarkdown}
+  %\VignetteEncoding{UTF-8}
+---
+
+```{r setup, include = FALSE}
+knitr::opts_chunk$set(
+  collapse = TRUE,
+  comment = "#>"
+)
+```
+
+```{r}
+
+library(dplyr)
+library(rimr)
+
+load("../data/kraj_2000.RData")
+load("../data/kraj_2004.RData")
+kraj_2008 <- readr::read_csv("../data/kraj_2008.csv")
+
+kraj_2000$abs_votes <- as.integer(gsub("\\s", "", kraj_2000$abs_votes))
+kraj_2004$abs_votes <- as.integer(gsub("\\s", "", kraj_2004$abs_votes))
+
+kraj_2000$last_name <- gsub("l'", "ĺ", kraj_2000$last_name)
+kraj_2004$last_name <- gsub("l'", "ĺ", kraj_2004$last_name)
+
+kraj_2004$first_name <- gsub("l'", "ĺ", kraj_2004$first_name)
+
+kraj_2000$year <- 2000
+kraj_2004$year <- 2004
+kraj_2008$year <- 2008
+```
+
+First, find similar between election in 2000 and 2004 and between 2004 and 2008. 
+Joining these datasets would omit those candidates who run in 2000 and in 2008 
+(but did not run in 2004).
+```{r, eval = FALSE}
+k_00_04 <- find_all_similar(source = kraj_2000, 
+                            target = kraj_2004, 
+                            eq = c("first_name", "last_name", "region"), 
+                            eq_tol = list(c("approx_birth_year", 1)), 
+                            id = "row_id", 
+                            keep_duplicities = FALSE, 
+                            verbose = TRUE, 
+                            cores = 4)
+
+k_04_08 <- find_all_similar(source = kraj_2004, 
+                            target = kraj_2008, 
+                            eq = c("first_name", "last_name", "region"), 
+                            eq_tol = list(c("approx_birth_year", 1)), 
+                            id = "row_id", 
+                            keep_duplicities = FALSE, 
+                            verbose = TRUE, 
+                            cores = 4)
+
+
+```
+
+Thus, we have to find data for those who did not run in 2004 
+using `return_missing_data` function.
+Also, to make it faster, we should find the data to persons who did run in 2000 but 
+not in 2004 using `find_nonconsecutive_data`.
+
+```{r, eval = FALSE}
+missing_08 <- find_missing(kraj_2008, "row_id", k_04_08$kraj_2008)
+missing_data_08 <- return_missing_data(kraj_2008, "row_id", missing_08)
+noncons_04 <- return_nonconsecutive_data(k_00_04, kraj_2000, kraj_2004, "row_id")
+
+```
+
+Then, we compare these two datasets for matching persons.
+```{r, eval = FALSE}
+k_00_08 <- find_all_similar(noncons_04, missing_data_08, 
+                            eq = c("first_name", "last_name", "region"), 
+                            eq_tol = list(c("approx_birth_year", 1)), 
+                            id = "row_id", 
+                            keep_duplicities = FALSE, 
+                            verbose = TRUE, 
+                            cores = 4)
+colnames(k_00_08) <- c("kraj_2000", "kraj_2008")
+# panel_00_08 <- create_panel_output(k_00_08)
+
+missing_final_08 <- find_missing(kraj_2008, "row_id", 
+                                  c(k_04_08$kraj_2008, k_00_08$kraj_2008))
+colnames(missing_final_08) <- c("kraj_2004", "kraj_2008")
+
+k_04_08_2 <- append_missing(target = kraj_2008, 
+                            target_ids = "row_id", 
+                            out = k_04_08, 
+                            found_ids = c(k_04_08$kraj_2008, k_00_08$kraj_2008))
+```
+
+```{r, eval = FALSE}
+out <- dplyr::full_join(k_00_04, k_04_08, by = c("kraj_2004"))
+
+insert_nonconsecutive <- function(out, noncons_pivot, source, target){
+    args <- match.call()
+    last_column <- ncol(noncons_pivot)
+    running <- noncons_pivot[!is.na(noncons_pivot[, last_column]), ]
+    out[out[[as.character(args$source)]] %in% running[[as.character(args$source)]],
+        as.character(args$target)] <- running[[as.character(args$target)]]
+    out
+    
+}
+
+out_00_08 <- insert_nonconsecutive(out, k_00_08, kraj_2000, kraj_2008)
+out_00_08_with_missing <- dplyr::bind_rows(out_00_08, missing_final_08)
+panel_00_08 <- create_panel_output(out_00_08, "person_id")
+```
+

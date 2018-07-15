@@ -4,7 +4,7 @@
 \alias{find_missing}
 \title{Find IDs of entitites from target that does not occur in output}
 \usage{
-find_missing(target, target_ids, out)
+find_missing(target, target_ids, found_ids)
 }
 \arguments{
 \item{target}{data.frame with target data}
