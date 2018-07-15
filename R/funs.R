@@ -182,9 +182,6 @@ find_similar <- function(source,
 
 }
 
-create_values_list <- function(missing_rows){
-    paste0(unlist(purrr::map(missing_rows, function(x) paste0("(", x, ")"))), collapse = ", ")
-}
 
 #' Find all matches between tables t1 and t2 and add candidates who did not run in the
 #' sequential election with missing values

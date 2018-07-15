@@ -60,6 +60,7 @@ test_that("creating predicate works", {
                  "year > 1990")
 })
 
+
 original <- data.frame(first_name = "Karel", last_name = "Novák",
                        birth_year = 1980, stringsAsFactors = FALSE)
 similar <- data.frame(first_name = "Karel", last_name = "Novák",
@@ -68,3 +69,20 @@ test_that("calculating similarity works", {
       expect_equal(calculate_similarity_between_persons(original, similar),
                    2)
 })
+
+vars <- create_var_list(c("first_name", "last_name"), "=")
+test_that("inserting query values works", {
+    expect_equal(insert_query_values(original, 1, vars)[[1]]$value,
+                 "Karel")
+    expect_equal(insert_query_values(original, 1, vars)[[2]]$value,
+                 "Novák")
+})
+
+
+vars <- create_var_list(c("first_name", "last_name"), "=")
+query_vars <- insert_query_values(original, 1, vars)
+test_that("creating filter returns expected output", {
+    expect_equal(create_filter(query_vars),
+                 "first_name == 'Karel'&last_name == 'Novák'")
+})
+
