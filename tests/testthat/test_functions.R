@@ -60,3 +60,11 @@ test_that("creating predicate works", {
                  "year > 1990")
 })
 
+original <- data.frame(first_name = "Karel", last_name = "Novák",
+                       birth_year = 1980, stringsAsFactors = FALSE)
+similar <- data.frame(first_name = "Karel", last_name = "Novák",
+                      birth_year = 1983, stringsAsFactors = FALSE)
+test_that("calculating similarity works", {
+      expect_equal(calculate_similarity_between_persons(original, similar),
+                   2)
+})
