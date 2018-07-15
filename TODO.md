@@ -18,6 +18,3 @@
 * D3 animation (circles moving between groups) or [this](https://www.hvitfeldt.me/2018/03/recreate-sankey-flow-chart/)
 * Sankey chart
 * missing values (those who did not run) - pseudo heatmap
-
-## Data
-* API to retrieve data from SQLite

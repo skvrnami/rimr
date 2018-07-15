@@ -105,6 +105,7 @@ calculate_similarity_between_persons <- function(original, similar){
 #' Find match between one person from the first dataset (t1) and
 #' the whole second dataset (t2)
 #'
+#' @export
 #' @param source Name of the first table
 #' @param target Name of the second table
 #' @param row Row from the first table for which similar person is searched
@@ -117,9 +118,9 @@ calculate_similarity_between_persons <- function(original, similar){
 #' @param lt Vector of variables which should be lower in t1
 #' @param hte Vector of variables which should be higher or equal in t1
 #' @param lte Vector of variables which should be lower or equal in t1
+#' @param id Column in source and target datasets containing ID of a row
+#' @param compare_cols Columns to be used for comparison to remove duplicates
 #' @param verbose Specify if you want to display message for every 250th row
-#'
-#' @export find_similar
 find_similar <- function(source,
                          target,
                          row,
@@ -160,8 +161,8 @@ find_similar <- function(source,
             original <- dplyr::select(source[row, ], !!common_cols)
             similars <- dplyr::select(tmp, !!common_cols)
 
-            p_similarity <- rimr::calculate_similarity_between_persons(original,
-                                                                       similars)
+            p_similarity <- calculate_similarity_between_persons(original,
+                                                                 similars)
             tmp <- tmp[which.max(p_similarity), ]
         }
     }
@@ -181,9 +182,6 @@ find_similar <- function(source,
 
 }
 
-create_values_list <- function(missing_rows){
-    paste0(unlist(purrr::map(missing_rows, function(x) paste0("(", x, ")"))), collapse = ", ")
-}
 
 #' Find all matches between tables t1 and t2 and add candidates who did not run in the
 #' sequential election with missing values
@@ -192,20 +190,34 @@ create_values_list <- function(missing_rows){
 #' @param source Name of the first table
 #' @param target Name of the second table
 #' @param start From which row the comparison should be made
+#' @param id Column in source and target datasets containing ID of a row
 #' @param cores Number of cores to be used for computation
 #' @param ... Vectors containing variables for comparison (see find_similar)
 find_all_similar <- function(source,
                              target,
                              start = 1,
                              cores = 1,
+                             id,
                              ...){
+
+    if(!id %in% colnames(source)){
+        stop("The column of row IDs is missing in the source dataset")
+    }
+
+    if(!id %in% colnames(target)){
+        stop("The column of row IDs is missing in the target dataset")
+    }
+
     call <- as.list(match.call())
     col_names <- as.character(c(call$source, call$target))
     #' Find all matches between first and second table
     rows1 <- nrow(source)
 
     out <- parallel::mclapply(start:rows1,
-                              function(x) find_similar(source, target, x, ...),
+                              function(x) find_similar(source = source,
+                                                       target = target,
+                                                       row = x,
+                                                       id = id, ...),
                               mc.cores = cores)
 
     out <- do.call(rbind, out)
