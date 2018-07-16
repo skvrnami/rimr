@@ -130,3 +130,22 @@ test_that("append_missing returns expected output", {
                  data.frame(original = c(1, NA),
                             similar2 = c(1, 2)))
 })
+
+mis2 <- find_missing(similar2, "row_id", 1)
+test_that("return_missing_data returns expected output", {
+    expect_equal(return_missing_data(similar2, "row_id", mis2),
+                 similar2[2, ])
+})
+
+# does not work because cannot find 'original' object
+# final_out <- append_missing(similar2, "row_id", out2, out2$similar2)
+# expected_output <- create_panel_output(final_out, "id", "data")
+# test_that("create_panel_output returns expected output", {
+#     expect_true(all(expected_output ==
+#                  data.frame(id = c(1, 1, 2),
+#                             data = c("original", "similar2", "similar2"),
+#                             first_name = c("Karel", "Karel", "Josef"),
+#                             last_name = c("Novák", "Novák", "Dvořák"),
+#                             birth_year = c(1980, 1983, 1950),
+#                             row_id = c(1, 1, 2))))
+# })

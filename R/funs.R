@@ -266,7 +266,9 @@ append_missing <- function(target, target_ids, out, found_ids){
 #' @export
 #' @param output Data.frame resulting from find_all_similar
 #' @param id Name of column containing IDs which will be created
-create_panel_output <- function(output, id = "id"){
+#' @param data Name of column containing name of the dataset from which
+#' the record originates to be created
+create_panel_output <- function(output, id = "id", data = "data"){
     output[[id]] <- 1:nrow(output)
     # reorder columns so that the person_id is the first and then the rest
     output <- dplyr::select(output, !!id, dplyr::everything())
@@ -276,13 +278,14 @@ create_panel_output <- function(output, id = "id"){
 
     t_iter <- purrr::transpose(iter)
 
-    out <- dplyr::bind_rows(lapply(t_iter, function(x) get_record(x, id)))
-    dplyr::select(out, !!id, dplyr::everything())
+    out <- dplyr::bind_rows(lapply(t_iter, function(x) get_record(x, id, data)))
+    dplyr::select(out, !!id, !!data, dplyr::everything())
 }
 
-get_record <- function(iter, id){
-    data <- eval(as.name(iter$data))
-    tmp <- data[iter$row, ]
+get_record <- function(iter, id, data){
+    d <- eval(as.name(iter$data))
+    tmp <- d[iter$row, ]
+    tmp[[data]] <- iter[["data"]]
     tmp[[id]] <- iter[[id]]
     tmp
 }
