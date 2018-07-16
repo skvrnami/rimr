@@ -109,3 +109,24 @@ test_that("find_all_similar returns expected result", {
     expect_equal(find_all_similar(original, similar, 1, eq = c("first_name", "last_name"), id = "row_id"),
                  data.frame(original = 1, similar = 1))
 })
+
+similar2 <- data.frame(first_name = c("Karel", "Josef"),
+                       last_name = c("Novák", "Dvořák"),
+                       birth_year = c(1983, 1950),
+                       row_id = 1:2,
+                       stringsAsFactors = FALSE)
+test_that("find_missing returns expected output", {
+    expect_equal(find_missing(similar2, "row_id", 1),
+                 data.frame(from = NA, to = 2))
+})
+
+out2 <- find_all_similar(original, similar2, 1, cores = 1, id = "row_id",
+                 eq = c("first_name", "last_name"))
+test_that("append_missing returns expected output", {
+    expect_equal(append_missing(target = similar2,
+                                target_ids = "row_id",
+                                out = out2,
+                                found_ids = out2$similar2),
+                 data.frame(original = c(1, NA),
+                            similar2 = c(1, 2)))
+})

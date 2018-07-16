@@ -253,7 +253,7 @@ find_missing <- function(target, target_ids, found_ids){
 append_missing <- function(target, target_ids, out, found_ids){
     missing <- find_missing(target, target_ids, found_ids)
     colnames(missing) <- colnames(out)
-    rbind(out, missing)
+    dplyr::bind_rows(out, missing)
 }
 
 # TODO: Define recursive matching for sequence of election
