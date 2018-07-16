@@ -33,9 +33,6 @@ kraj_2004$last_name <- gsub("l'", "ĺ", kraj_2004$last_name)
 
 kraj_2004$first_name <- gsub("l'", "ĺ", kraj_2004$first_name)
 
-kraj_2000$year <- 2000
-kraj_2004$year <- 2004
-kraj_2008$year <- 2008
 ```
 
 First, find similar between election in 2000 and 2004 and between 2004 and 2008. 

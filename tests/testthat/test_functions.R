@@ -137,6 +137,19 @@ test_that("return_missing_data returns expected output", {
                  similar2[2, ])
 })
 
+similar3 <- data.frame(first_name = c("Karel", "Josef", "Karel"),
+                       last_name = c("Novák", "Dvořák", "Novák"),
+                       birth_year = c(1983, 1950, 1980),
+                       row_id = 1:3,
+                       stringsAsFactors = FALSE)
+test_that("find_all_similar removes duplicities if expected", {
+    expect_equal(find_all_similar(original, similar3, start = 1, id = "row_id",
+                                  eq = c("first_name", "last_name"),
+                                  keep_duplicities = FALSE),
+                 data.frame(original = 1,
+                            similar3 = 3))
+})
+
 # does not work because cannot find 'original' object
 # final_out <- append_missing(similar2, "row_id", out2, out2$similar2)
 # expected_output <- create_panel_output(final_out, "id", "data")

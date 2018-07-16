@@ -155,6 +155,7 @@ find_similar <- function(source,
     if(nrow(tmp) > 1){
         if(!keep_duplicities){
             common_cols <- intersect(colnames(source), colnames(target))
+            common_cols <- common_cols[!common_cols == id]
             if(!is.null(compare_cols)){
                 common_cols <- intersect(compare_cols, common_cols)
             }
