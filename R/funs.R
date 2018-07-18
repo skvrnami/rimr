@@ -231,7 +231,7 @@ find_all_similar <- function(source,
     #' to the same person in target
     #' i.e. check if there are any duplicities in target column of out
     if(!keep_duplicities){
-        duplicated_rows <- which(duplicated(out$to))
+        duplicated_rows <- which(duplicated(out$to) & !is.na(out$to))
         if(length(duplicated_rows) > 0){
             sim_groups <- purrr::map(duplicated_rows,
                                      function(x) out[out$to == out$to[x], ])

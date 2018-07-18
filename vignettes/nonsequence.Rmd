@@ -66,11 +66,15 @@ create_cross_output <- function(output, source, target, row_id){
     row_id2 <- paste0("row_id_", as.character(args$target))
     colnames(output)[2] <- row_id2
     colnames(target)[colnames(target) == row_id] <- row_id2
+    common_cols <- intersect(colnames(source), colnames(target))
+    target <- select(target, -common_cols)
     tmp <- dplyr::full_join(source, output, by = row_id)
     dplyr::left_join(tmp, target, by = row_id2)
 }
 
 out <- create_cross_output(pivot, ano_candidates, ano_donation_sums, "row_id")
-out %>% arrange(desc(total_donations)) %>% head()
+out %>% arrange(desc(total_donations)) %>% 
+    select(first_name, last_name, total_donations) %>% 
+    head()
 ```
 
