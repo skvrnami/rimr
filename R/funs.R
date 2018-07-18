@@ -26,7 +26,7 @@ add_q_marks <- function(value){
 }
 
 add_q_marks.default <- function(value){
-    glue::glue("'{value}'")
+    glue::glue('"{value}"')
 }
 
 add_q_marks.numeric <- function(value){
@@ -35,10 +35,11 @@ add_q_marks.numeric <- function(value){
 
 construct_predicate <- function(var, operation, value){
     if(operation != "=s"){
-        as.character(glue::glue("{var} {operation} {value}",
+        as.character(glue::glue('{var} {operation} {value}',
                                 value = add_q_marks(value)))
     }else{
-        as.character(glue::glue("grepl('{value}', {var})"))
+        as.character(glue::glue('grepl({value}, {var})',
+                                value = add_q_marks(value)))
     }
 
 }
@@ -199,6 +200,7 @@ find_all_similar <- function(source,
                              start = 1,
                              cores = 1,
                              id,
+                             keep_duplicities = FALSE,
                              ...){
 
     if(!id %in% colnames(source)){
@@ -218,13 +220,72 @@ find_all_similar <- function(source,
                               function(x) find_similar(source = source,
                                                        target = target,
                                                        row = x,
-                                                       id = id, ...),
+                                                       id = id,
+                                                       keep_duplicities = keep_duplicities,
+                                                       ...),
                               mc.cores = cores)
 
     out <- do.call(rbind, out)
+
+    #' TODO: Backward check if two persons from source are not assigned
+    #' to the same person in target
+    #' i.e. check if there are any duplicities in target column of out
+    if(!keep_duplicities){
+        duplicated_rows <- which(duplicated(out$to))
+        if(length(duplicated_rows) > 0){
+            sim_groups <- purrr::map(duplicated_rows,
+                                     function(x) out[out$to == out$to[x], ])
+
+            duplicity_ids <- unlist(purrr::map(sim_groups, function(x)
+                find_all_duplicities(x, source, target, "row_id")))
+
+            out[out$from %in% duplicity_ids, "to"] <- NA
+        }
+    }
+
+
     colnames(out) <- col_names
     out
 
+}
+
+
+get_original <- function(sim_group, source){
+    source[sim_group$from, ]
+}
+
+get_similar <- function(sim_group, target){
+    target[unique(sim_group$to), ]
+}
+
+# find_most_similar <- function(original, similar){
+#     p_similarity <- calculate_similarity_between_persons(similar, original)
+#     original[which.max(p_similarity), ]
+# }
+
+find_duplicity <- function(original, similar, id){
+    p_similarity <- calculate_similarity_between_persons(similar, original)
+    original[-which.max(p_similarity), id]
+}
+
+find_all_duplicities <- function(sim_group, source, target, id){
+    original <- get_original(sim_group, source)
+    similar <- get_similar(sim_group, target)
+    find_duplicity(original, similar, id)
+}
+# return_duplicities <- function(most_similar, duplicated_id)
+# delete_duplicity <- function(out, most_similar, duplicated_id, id){
+#     most_similar_id <- `[[`(dplyr::select(most_similar, !!id), 1)
+#     out[out$to == duplicated_id] <- NA
+#     out[out$from == most_similar_id] <- duplicated_id
+#     out
+# }
+
+delete_duplicity_wrapper <- function(out, sim_group, source, target, id){
+    original <- get_original(sim_group, source)
+    similar <- get_similar(sim_group, target)
+    m_sim <- find_most_similar(original, similar)
+    delete_duplicity(out, m_sim, similar[[id]], id)
 }
 
 #' Find IDs of entitites from target that does not occur in output
@@ -318,5 +379,20 @@ return_nonconsecutive_data <- function(result, source, target, row_id){
     noncons_ids <- res_pivot[[as.character(args$source)]]
     select_ids <- source[[row_id]] %in% noncons_ids
     source[select_ids, ]
+}
+
+#' Insert nonconsecutive entities into pivot table
+#'
+#' @export
+#' @param out Pivot table returned by find_all_similar
+#' @param noncons_pivot Pivot table returned by find_all_similar
+#' between nonconsecutive datasets
+#' @param source Name of the nonconsecutive pivot source
+#' @param target Name of the nonconsecutive pivot target
+insert_nonconsecutive <- function(out, noncons_pivot, source, target){
+    last_column <- ncol(noncons_pivot)
+    running <- noncons_pivot[!is.na(noncons_pivot[, last_column]), ]
+    out[out[[source]] %in% running[[source]], target] <- running[[target]]
+    out
 }
 

@@ -113,8 +113,6 @@ colnames(missing_final_08) <- c("kraj_2004", "kraj_2008")
 ```
 
 ```{r, eval = FALSE}
-out <- dplyr::full_join(k_00_04, k_04_08, by = c("kraj_2004"))
-
 insert_nonconsecutive <- function(out, noncons_pivot, source, target){
     last_column <- ncol(noncons_pivot)
     running <- noncons_pivot[!is.na(noncons_pivot[, last_column]), ]
@@ -122,6 +120,8 @@ insert_nonconsecutive <- function(out, noncons_pivot, source, target){
     out
     
 }
+
+out <- dplyr::full_join(k_00_04, k_04_08, by = c("kraj_2004"))
 
 out_00_08 <- insert_nonconsecutive(out, k_00_08, "kraj_2000", "kraj_2008")
 out_00_08_with_missing <- dplyr::bind_rows(out_00_08, missing_final_08)

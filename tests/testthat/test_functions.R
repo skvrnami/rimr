@@ -22,16 +22,16 @@ test_that("creating variable lists works", {
 
 test_that("adding quotation marks works", {
     expect_equal(add_q_marks("Karel"),
-                 glue::glue("'Karel'"))
+                 glue::glue('"Karel"'))
     expect_equal(add_q_marks(6),
                  glue::glue(6))
 })
 
 test_that("constructing predicate works", {
     expect_equal(construct_predicate("first_name", "==", "Karel"),
-                 "first_name == 'Karel'")
+                 'first_name == "Karel"')
     expect_equal(construct_predicate("last_name", "=s", "Nováková"),
-                 "grepl('Nováková', last_name)")
+                 'grepl("Nováková", last_name)')
 })
 
 qv1 <- list(column = "first_name",
@@ -51,11 +51,11 @@ qv3 <- list(column = "year",
             tolerance = 1)
 test_that("creating predicate works", {
     expect_equal(create_predicate_from_query_var(qv1)$predicate,
-                 "first_name == 'Karel'")
+                 'first_name == "Karel"')
     expect_equal(create_predicate_from_query_var(qv1)$name,
                  "first_name")
     expect_equal(create_predicate_from_query_var(qv2)$predicate,
-                 "year >= 1989&year <= 1991")
+                 'year >= 1989&year <= 1991')
     expect_equal(create_predicate_from_query_var(qv3)$predicate,
                  "year > 1990")
 })
@@ -86,8 +86,10 @@ vars <- create_var_list(c("first_name", "last_name"), "=")
 query_vars <- insert_query_values(original, 1, vars)
 test_that("creating filter returns expected output", {
     expect_equal(create_filter(query_vars),
-                 "first_name == 'Karel'&last_name == 'Novák'")
+                 'first_name == "Karel"&last_name == "Novák"')
 })
+
+context("Find similar")
 
 original2 <- original
 original2$row_id <- 1
@@ -106,7 +108,9 @@ test_that("find_similar returns expected result", {
 })
 
 test_that("find_all_similar returns expected result", {
-    expect_equal(find_all_similar(original, similar, 1, eq = c("first_name", "last_name"), id = "row_id"),
+    expect_equal(find_all_similar(original, similar, 1,
+                                  eq = c("first_name", "last_name"),
+                                  id = "row_id"),
                  data.frame(original = 1, similar = 1))
 })
 
@@ -137,18 +141,46 @@ test_that("return_missing_data returns expected output", {
                  similar2[2, ])
 })
 
-similar3 <- data.frame(first_name = c("Karel", "Josef", "Karel"),
-                       last_name = c("Novák", "Dvořák", "Novák"),
-                       birth_year = c(1983, 1950, 1980),
-                       row_id = 1:3,
-                       stringsAsFactors = FALSE)
+similar3 <- data.frame(
+    first_name = c("Karel", "Josef", "Karel"),
+    last_name = c("Novák", "Dvořák", "Novák"),
+    birth_year = c(1983, 1950, 1980),
+    row_id = 1:3,
+    stringsAsFactors = FALSE
+)
+source <- data.frame(
+    row_id = 1:4,
+    first_name = c("Karel", "Karel", "Václav", "Václav"),
+    last_name = c("Šlápota", "Šlápota", "Novák", "Novák"),
+    year = c(1990, 1991, 1990, 1991),
+    stringsAsFactors = FALSE
+)
+target <- data.frame(
+    row_id = 1:4,
+    first_name = c("Karel", "Karel", "Václav", "Václav"),
+    last_name = c("Šlápota", "Daněk", "Novák", "Daněk"),
+    year = c(1990, 1991, 1990, 1991),
+    stringsAsFactors = FALSE
+)
+out1 <- find_all_similar(source, target, start = 1, cores = 1,
+                         id = "row_id",
+                         eq = c("first_name", "last_name"),
+                         keep_duplicities = FALSE)
+
 test_that("find_all_similar removes duplicities if expected", {
     expect_equal(find_all_similar(original, similar3, start = 1, id = "row_id",
                                   eq = c("first_name", "last_name"),
                                   keep_duplicities = FALSE),
                  data.frame(original = 1,
                             similar3 = 3))
+    expect_equal(find_all_similar(source, target, start = 1, id = "row_id",
+                                  eq = c("first_name", "last_name"),
+                                  keep_duplicities = FALSE),
+                 data.frame(source = 1:4,
+                            target = c(1, NA, 3, NA)))
 })
+
+
 
 # does not work because cannot find 'original' object
 # final_out <- append_missing(similar2, "row_id", out2, out2$similar2)

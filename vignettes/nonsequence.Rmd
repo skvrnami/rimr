@@ -1,0 +1,76 @@
+---
+title: ""
+author: "Michael Škvrňák"
+date: "`r Sys.Date()`"
+output: rmarkdown::html_vignette
+vignette: >
+  %\VignetteIndexEntry{Vignette Title}
+  %\VignetteEngine{knitr::rmarkdown}
+  %\VignetteEncoding{UTF-8}
+---
+
+```{r setup, include = FALSE}
+knitr::opts_chunk$set(
+  collapse = TRUE,
+  comment = "#>"
+)
+```
+
+```{r}
+library(readr)
+library(dplyr)
+
+# Data on donations to ANO
+ano_donations <- readr::read_delim("../data/ps2017-ano-penizefo.csv", delim = ";")
+colnames(ano_donations) <- c("date", "amount", "last_name", "first_name", 
+                             "title_before", "title_after", "birth_date", 
+                             "residence")
+
+ano_donations$birth_year <- lubridate::year(ano_donations$birth_date)
+ano_donations %>% 
+    group_by(last_name, first_name, birth_year, residence) %>%
+    summarise(total_donations = sum(amount)) %>%
+    ungroup() -> ano_donation_sums
+
+ano_donation_sums$row_id <- 1:nrow(ano_donation_sums)
+
+# Data on candidates
+ano_candidates <- read_delim("../data/psrk.csv", ";", 
+                       escape_double = FALSE, locale = locale(encoding = "WINDOWS-1250"),
+                       trim_ws = TRUE) %>%
+    filter(PSTRANA == 768) %>% 
+    select(-c(BYDLISTEK, PLATNOST, POCPROC, POCPROCVSE, PORADIMAND, PORADINAHR))
+
+colnames(ano_candidates) <- c("region", "party", "list_no", "first_name", "last_name", 
+                              "title_before", "title_after", "age", "occupation", 
+                              "residence", "member_party", 
+                              "nomination_party", "votes", "mandate")
+ano_candidates$birth_year <- 2017 - ano_candidates$age
+ano_candidates$row_id <- 1:nrow(ano_candidates)
+```
+
+```{r}
+library(rimr)
+pivot <- find_all_similar(source = ano_candidates, 
+                          target = ano_donation_sums, 
+                          start = 1, 
+                          id = "row_id", 
+                          cores = 4, 
+                          eq = c("first_name", "last_name", "residence"), 
+                          eq_tol = list(c("birth_year", 1))
+                          )
+
+create_cross_output <- function(output, source, target, row_id){
+    args <- as.list(match.call())
+    colnames(output)[1] <- row_id
+    row_id2 <- paste0("row_id_", as.character(args$target))
+    colnames(output)[2] <- row_id2
+    colnames(target)[colnames(target) == row_id] <- row_id2
+    tmp <- dplyr::full_join(source, output, by = row_id)
+    dplyr::left_join(tmp, target, by = row_id2)
+}
+
+out <- create_cross_output(pivot, ano_candidates, ano_donation_sums, "row_id")
+out %>% arrange(desc(total_donations)) %>% head()
+```
+

@@ -30,6 +30,7 @@ based on:
 [*] exact equality  
 [*] equality with tolerance (x - t <= x <= x + t)  
 [ ] equality with tolerance with specified direction (e.g. x >= x & x <= x + t or x <= x & x <= x - t)  
+[ ] equality with tolerance based on string distance
 [*] higher/lower than  
 [*] higher than or equal to/lower than or equal to  
 [*] contains string  
@@ -50,6 +51,7 @@ based on:
 ## Other
 
 [ ] Check `dbplyr` for storing datasets
+[ ] Check algorithmic complexity (could be source grouped?)
 
 ### Conceptual
 
