@@ -89,6 +89,15 @@ test_that("creating filter returns expected output", {
                  'first_name == "Karel"&last_name == "Novák"')
 })
 
+context("Test C++ helpers")
+test_that("find duplicated values return expected result", {
+    expect_equal(find_duplicated_values(c(1,2,3,1,2)),
+                 c(1,2))
+    expect_equal(find_duplicated_values(c(1,NA,NA,1)),
+                 c(1))
+
+})
+
 context("Find similar")
 
 original2 <- original

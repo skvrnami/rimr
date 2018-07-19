@@ -18,6 +18,8 @@ Imports:
     parallel, 
     tidyr, 
     glue, 
-    purrr
+    purrr,
+    Rcpp
 RoxygenNote: 6.0.1
 VignetteBuilder: knitr
+LinkingTo: Rcpp

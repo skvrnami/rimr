@@ -1,3 +1,8 @@
+#' @useDynLib rimr
+#' @importFrom Rcpp sourceCpp
+NULL
+
+
 #' create list storing column with attributes for comparison,
 #' operation on which the data should be compared (=, >, <, >=, <=)
 #' @param x Vector of variables
@@ -194,6 +199,8 @@ find_similar <- function(source,
 #' @param start From which row the comparison should be made
 #' @param id Column in source and target datasets containing ID of a row
 #' @param cores Number of cores to be used for computation
+#' @param keep_duplicities Parameter indicating if duplicities should be kept or
+#' removed
 #' @param ... Vectors containing variables for comparison (see find_similar)
 find_all_similar <- function(source,
                              target,
@@ -227,14 +234,15 @@ find_all_similar <- function(source,
 
     out <- do.call(rbind, out)
 
-    #' TODO: Backward check if two persons from source are not assigned
+    #' Backward check if two persons from source are not assigned
     #' to the same person in target
-    #' i.e. check if there are any duplicities in target column of out
     if(!keep_duplicities){
-        duplicated_rows <- which(duplicated(out$to) & !is.na(out$to))
-        if(length(duplicated_rows) > 0){
-            sim_groups <- purrr::map(duplicated_rows,
-                                     function(x) out[out$to == out$to[x], ])
+        duplicated_values <- find_duplicated_values(out$to)
+        # non_na <- `[[`(filter(out, !is.na(to)), 2)
+        # duplicated_values <- non_na[which(duplicated(non_na))]
+        if(length(duplicated_values) > 0){
+            sim_groups <- purrr::map(1:length(duplicated_values),
+                                     function(x) out[out$to == duplicated_values[x], ])
 
             duplicity_ids <- unlist(purrr::map(sim_groups, function(x)
                 find_all_duplicities(x, source, target, "row_id")))
@@ -242,7 +250,6 @@ find_all_similar <- function(source,
             out[out$from %in% duplicity_ids, "to"] <- NA
         }
     }
-
 
     colnames(out) <- col_names
     out
