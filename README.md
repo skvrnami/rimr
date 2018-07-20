@@ -51,7 +51,7 @@ based on:
 
 ## Other
 
-:x: Check `dbplyr` for storing datasets
+:x: Check `dbplyr` for storing datasets  
 :x: Check algorithmic complexity (could be source grouped?)
 
 ### Conceptual
