@@ -89,6 +89,24 @@ test_that("creating filter returns expected output", {
                  'first_name == "Karel"&last_name == "Novák"')
 })
 
+original_cols <- data.frame(id = 1, first_name = "Karel", last_name = "Novák",
+                       birth_year = 1980, stringsAsFactors = FALSE)
+similar_cols <- data.frame(id = 1, first_name = "Karel", last_name = "Novák",
+                      birth_year = 1983, stringsAsFactors = FALSE)
+
+test_that("finding common columns returns expected output", {
+    expect_equal(find_common_cols(original_cols, similar_cols, "id"),
+                 c("id", "first_name", "last_name", "birth_year"))
+    expect_equal(find_common_cols(original_cols, similar_cols, "id",
+                                  compare_cols = NULL, remove_id = TRUE),
+                 c("first_name", "last_name", "birth_year"))
+    expect_equal(find_common_cols(original_cols, similar_cols, "id",
+                                  compare_cols = c("first_name", "last_name"),
+                                  remove_id = TRUE),
+                 c("first_name", "last_name"))
+
+})
+
 context("Test C++ helpers")
 test_that("find duplicated values return expected result", {
     expect_equal(find_duplicated_values(c(1,2,3,1,2)),

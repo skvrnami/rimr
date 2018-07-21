@@ -24,6 +24,20 @@ create_var_list <- function(x, operation){
 }
 
 
+find_common_cols <- function(source, target, id, compare_cols = NULL,
+                             remove_id = FALSE){
+    common_cols <- intersect(colnames(source), colnames(target))
+    if(remove_id){
+        common_cols <- common_cols[!common_cols == id]
+    }
+
+    if(!is.null(compare_cols)){
+        common_cols <- intersect(compare_cols, common_cols)
+    }
+    common_cols
+}
+
+
 #' Add quotation marks to value if necessary
 #' @param value Value of a variable to be enquoted
 add_q_marks <- function(value){
@@ -160,11 +174,9 @@ find_similar <- function(source,
 
     if(nrow(tmp) > 1){
         if(!keep_duplicities){
-            common_cols <- intersect(colnames(source), colnames(target))
-            common_cols <- common_cols[!common_cols == id]
-            if(!is.null(compare_cols)){
-                common_cols <- intersect(compare_cols, common_cols)
-            }
+            common_cols <- find_common_cols(source, target, id, compare_cols,
+                                            remove_id = TRUE)
+
             original <- dplyr::select(source[row, ], !!common_cols)
             similars <- dplyr::select(tmp, !!common_cols)
 
@@ -208,6 +220,7 @@ find_all_similar <- function(source,
                              cores = 1,
                              id,
                              keep_duplicities = FALSE,
+                             compare_cols = NULL,
                              ...){
 
     if(!id %in% colnames(source)){
@@ -229,6 +242,7 @@ find_all_similar <- function(source,
                                                        row = x,
                                                        id = id,
                                                        keep_duplicities = keep_duplicities,
+                                                       compare_cols = compare_cols,
                                                        ...),
                               mc.cores = cores)
 
@@ -242,10 +256,11 @@ find_all_similar <- function(source,
         # duplicated_values <- non_na[which(duplicated(non_na))]
         if(length(duplicated_values) > 0){
             sim_groups <- purrr::map(1:length(duplicated_values),
-                                     function(x) out[out$to == duplicated_values[x], ])
+                                     function(x) out[out$to == duplicated_values[x] & !is.na(out$to), ])
 
             duplicity_ids <- unlist(purrr::map(sim_groups, function(x)
-                find_all_duplicities(x, source, target, "row_id")))
+                find_all_duplicities(x, source, target, "row_id",
+                                     compare_cols = compare_cols)))
 
             out[out$from %in% duplicity_ids, "to"] <- NA
         }
@@ -275,10 +290,19 @@ find_duplicity <- function(original, similar, id){
     original[-which.max(p_similarity), id]
 }
 
-find_all_duplicities <- function(sim_group, source, target, id){
+
+find_all_duplicities <- function(sim_group, source, target, id, compare_cols){
+
     original <- get_original(sim_group, source)
     similar <- get_similar(sim_group, target)
-    find_duplicity(original, similar, id)
+
+    common_cols <- find_common_cols(source, target, id, compare_cols,
+                                    remove_id = FALSE)
+
+    original <- dplyr::select(original, !!common_cols)
+    similars <- dplyr::select(similar, !!common_cols)
+
+    find_duplicity(original, similars, id)
 }
 # return_duplicities <- function(most_similar, duplicated_id)
 # delete_duplicity <- function(out, most_similar, duplicated_id, id){
