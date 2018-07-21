@@ -213,6 +213,8 @@ find_similar <- function(source,
 #' @param cores Number of cores to be used for computation
 #' @param keep_duplicities Parameter indicating if duplicities should be kept or
 #' removed
+#' @param compare_cols columns which should be used for comparison of similar persons
+#' if there is more than 1 match (to find the most similar and remove duplicities)
 #' @param ... Vectors containing variables for comparison (see find_similar)
 find_all_similar <- function(source,
                              target,
