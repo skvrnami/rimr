@@ -306,20 +306,7 @@ find_all_duplicities <- function(sim_group, source, target, id, compare_cols){
 
     find_duplicity(original, similars, id)
 }
-# return_duplicities <- function(most_similar, duplicated_id)
-# delete_duplicity <- function(out, most_similar, duplicated_id, id){
-#     most_similar_id <- `[[`(dplyr::select(most_similar, !!id), 1)
-#     out[out$to == duplicated_id] <- NA
-#     out[out$from == most_similar_id] <- duplicated_id
-#     out
-# }
 
-delete_duplicity_wrapper <- function(out, sim_group, source, target, id){
-    original <- get_original(sim_group, source)
-    similar <- get_similar(sim_group, target)
-    m_sim <- find_most_similar(original, similar)
-    delete_duplicity(out, m_sim, similar[[id]], id)
-}
 
 #' Find IDs of entitites from target that does not occur in output
 #'
@@ -425,6 +412,11 @@ return_nonconsecutive_data <- function(result, source, target, row_id){
 insert_nonconsecutive <- function(out, noncons_pivot, source, target){
     last_column <- ncol(noncons_pivot)
     running <- noncons_pivot[!is.na(noncons_pivot[, last_column]), ]
+    out <- dplyr::arrange_(out, source)
+    duplicated_source <- find_duplicated_values(out[[source]])
+    if(length(duplicated_source) > 0){
+        stop("There are duplicated values in source: ", duplicated_source)
+    }
     out[out[[source]] %in% running[[source]], target] <- running[[target]]
     out
 }

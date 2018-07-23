@@ -207,6 +207,39 @@ test_that("find_all_similar removes duplicities if expected", {
                             target = c(1, NA, 3, NA)))
 })
 
+test_pivot <- data.frame(
+    municipal_1994 = c(1, 2, 2, 3),
+    municipal_1998 = c(1, NA, NA, NA),
+    municipal_2002 = c(1, NA, NA, NA)
+)
+
+non_pivot <- data.frame(
+    municipal_1994 = c(2, 3),
+    municipal_2002 = c(2, 3)
+)
+
+test_that("insert nonconsecutive returns error if there are duplicities", {
+    expect_error(insert_nonconsecutive(test_pivot, non_pivot,
+                                       "municipal_1994", "municipal_2002"))
+})
+
+test_pivot2 <- data.frame(
+    municipal_1994 = c(1, 2, 3),
+    municipal_1998 = c(1, NA, NA),
+    municipal_2002 = c(1, NA, NA)
+)
+
+expected_pivot <- data.frame(
+    municipal_1994 = c(1, 2, 3),
+    municipal_1998 = c(1, NA, NA),
+    municipal_2002 = c(1, 2, 3)
+)
+
+test_that("insert nonconsecutive returns expected result", {
+    expect_equal(insert_nonconsecutive(test_pivot2, non_pivot,
+                                       "municipal_1994", "municipal_2002"),
+                 expected_pivot)
+})
 
 
 # does not work because cannot find 'original' object
