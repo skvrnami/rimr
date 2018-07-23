@@ -20,9 +20,6 @@ load("../data/kraj_2004.RData")
 kraj_2000$last_name <- gsub("l'", "ĺ", kraj_2000$last_name)
 kraj_2004$last_name <- gsub("l'", "ĺ", kraj_2004$last_name)
 
-kraj_2000$year <- 2000
-kraj_2004$year <- 2004
-
 kraj_2000 <- kraj_2000[1:100, ]
 
 head(kraj_2000)

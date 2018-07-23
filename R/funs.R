@@ -1,3 +1,8 @@
+#' @useDynLib rimr
+#' @importFrom Rcpp sourceCpp
+NULL
+
+
 #' create list storing column with attributes for comparison,
 #' operation on which the data should be compared (=, >, <, >=, <=)
 #' @param x Vector of variables
@@ -19,6 +24,20 @@ create_var_list <- function(x, operation){
 }
 
 
+find_common_cols <- function(source, target, id, compare_cols = NULL,
+                             remove_id = FALSE){
+    common_cols <- intersect(colnames(source), colnames(target))
+    if(remove_id){
+        common_cols <- common_cols[!common_cols == id]
+    }
+
+    if(!is.null(compare_cols)){
+        common_cols <- intersect(compare_cols, common_cols)
+    }
+    common_cols
+}
+
+
 #' Add quotation marks to value if necessary
 #' @param value Value of a variable to be enquoted
 add_q_marks <- function(value){
@@ -26,7 +45,7 @@ add_q_marks <- function(value){
 }
 
 add_q_marks.default <- function(value){
-    glue::glue("'{value}'")
+    glue::glue('"{value}"')
 }
 
 add_q_marks.numeric <- function(value){
@@ -35,10 +54,11 @@ add_q_marks.numeric <- function(value){
 
 construct_predicate <- function(var, operation, value){
     if(operation != "=s"){
-        as.character(glue::glue("{var} {operation} {value}",
+        as.character(glue::glue('{var} {operation} {value}',
                                 value = add_q_marks(value)))
     }else{
-        as.character(glue::glue("grepl('{value}', {var})"))
+        as.character(glue::glue('grepl({value}, {var})',
+                                value = add_q_marks(value)))
     }
 
 }
@@ -154,10 +174,9 @@ find_similar <- function(source,
 
     if(nrow(tmp) > 1){
         if(!keep_duplicities){
-            common_cols <- intersect(colnames(source), colnames(target))
-            if(!is.null(compare_cols)){
-                common_cols <- intersect(compare_cols, common_cols)
-            }
+            common_cols <- find_common_cols(source, target, id, compare_cols,
+                                            remove_id = TRUE)
+
             original <- dplyr::select(source[row, ], !!common_cols)
             similars <- dplyr::select(tmp, !!common_cols)
 
@@ -172,11 +191,11 @@ find_similar <- function(source,
     }
 
     if(nrow(tmp) == 0){
-        data.frame(from = row,
+        data.frame(from = source[[id]][row],
                    to = NA)
     }else{
         ids <- `[[`(dplyr::select(tmp, !!id), 1)
-        data.frame(from = row,
+        data.frame(from = source[[id]][row],
                    to = ids)
     }
 
@@ -192,12 +211,18 @@ find_similar <- function(source,
 #' @param start From which row the comparison should be made
 #' @param id Column in source and target datasets containing ID of a row
 #' @param cores Number of cores to be used for computation
+#' @param keep_duplicities Parameter indicating if duplicities should be kept or
+#' removed
+#' @param compare_cols columns which should be used for comparison of similar persons
+#' if there is more than 1 match (to find the most similar and remove duplicities)
 #' @param ... Vectors containing variables for comparison (see find_similar)
 find_all_similar <- function(source,
                              target,
                              start = 1,
                              cores = 1,
                              id,
+                             keep_duplicities = FALSE,
+                             compare_cols = NULL,
                              ...){
 
     if(!id %in% colnames(source)){
@@ -217,14 +242,71 @@ find_all_similar <- function(source,
                               function(x) find_similar(source = source,
                                                        target = target,
                                                        row = x,
-                                                       id = id, ...),
+                                                       id = id,
+                                                       keep_duplicities = keep_duplicities,
+                                                       compare_cols = compare_cols,
+                                                       ...),
                               mc.cores = cores)
 
     out <- do.call(rbind, out)
+
+    #' Backward check if two persons from source are not assigned
+    #' to the same person in target
+    if(!keep_duplicities){
+        duplicated_values <- find_duplicated_values(out$to)
+        # non_na <- `[[`(filter(out, !is.na(to)), 2)
+        # duplicated_values <- non_na[which(duplicated(non_na))]
+        if(length(duplicated_values) > 0){
+            sim_groups <- purrr::map(1:length(duplicated_values),
+                                     function(x) out[out$to == duplicated_values[x] & !is.na(out$to), ])
+
+            duplicity_ids <- unlist(purrr::map(sim_groups, function(x)
+                find_all_duplicities(x, source, target, "row_id",
+                                     compare_cols = compare_cols)))
+
+            out[out$from %in% duplicity_ids, "to"] <- NA
+        }
+    }
+
     colnames(out) <- col_names
     out
 
 }
+
+
+get_original <- function(sim_group, source){
+    source[sim_group$from, ]
+}
+
+get_similar <- function(sim_group, target){
+    target[unique(sim_group$to), ]
+}
+
+# find_most_similar <- function(original, similar){
+#     p_similarity <- calculate_similarity_between_persons(similar, original)
+#     original[which.max(p_similarity), ]
+# }
+
+find_duplicity <- function(original, similar, id){
+    p_similarity <- calculate_similarity_between_persons(similar, original)
+    original[-which.max(p_similarity), id]
+}
+
+
+find_all_duplicities <- function(sim_group, source, target, id, compare_cols){
+
+    original <- get_original(sim_group, source)
+    similar <- get_similar(sim_group, target)
+
+    common_cols <- find_common_cols(source, target, id, compare_cols,
+                                    remove_id = FALSE)
+
+    original <- dplyr::select(original, !!common_cols)
+    similars <- dplyr::select(similar, !!common_cols)
+
+    find_duplicity(original, similars, id)
+}
+
 
 #' Find IDs of entitites from target that does not occur in output
 #'
@@ -232,9 +314,9 @@ find_all_similar <- function(source,
 #' @param target data.frame with target data
 #' @param target_ids column name of IDs in target data.frame
 #' @param out output returned by find_all_similar function
-find_missing <- function(target, target_ids, out){
+find_missing <- function(target, target_ids, found_ids){
     missing_from_target <- target[[target_ids]]
-    missing_from_target <- missing_from_target[!missing_from_target %in% out[[ncol(out)]]]
+    missing_from_target <- missing_from_target[!missing_from_target %in% found_ids]
 
     data.frame(from = NA,
                to = missing_from_target)
@@ -248,10 +330,12 @@ find_missing <- function(target, target_ids, out){
 #' @param target data.frame with target data
 #' @param target_ids column name of IDs in target data.frame
 #' @param out output returned by find_all_similar function
-append_missing <- function(target, target_ids, out){
-    missing <- find_missing(target, target_ids, out)
+#' @param found_ids vector containing IDs from target which has
+#' been found in the source dataset
+append_missing <- function(target, target_ids, out, found_ids){
+    missing <- find_missing(target, target_ids, found_ids)
     colnames(missing) <- colnames(out)
-    rbind(out, missing)
+    dplyr::bind_rows(out, missing)
 }
 
 # TODO: Define recursive matching for sequence of election
@@ -264,7 +348,9 @@ append_missing <- function(target, target_ids, out){
 #' @export
 #' @param output Data.frame resulting from find_all_similar
 #' @param id Name of column containing IDs which will be created
-create_panel_output <- function(output, id = "id"){
+#' @param data Name of column containing name of the dataset from which
+#' the record originates to be created
+create_panel_output <- function(output, id = "id", data = "data"){
     output[[id]] <- 1:nrow(output)
     # reorder columns so that the person_id is the first and then the rest
     output <- dplyr::select(output, !!id, dplyr::everything())
@@ -274,13 +360,64 @@ create_panel_output <- function(output, id = "id"){
 
     t_iter <- purrr::transpose(iter)
 
-    out <- dplyr::bind_rows(lapply(t_iter, function(x) get_record(x, id)))
-    dplyr::select(out, !!id, dplyr::everything())
+    out <- dplyr::bind_rows(lapply(t_iter, function(x) get_record(x, id, data)))
+    dplyr::select(out, !!id, !!data, dplyr::everything())
 }
 
-get_record <- function(iter, id){
-    data <- eval(as.name(iter$data))
-    tmp <- data[iter$row, ]
+get_record <- function(iter, id, data){
+    d <- eval(as.name(iter$data))
+    tmp <- d[iter$row, ]
+    tmp[[data]] <- iter[["data"]]
     tmp[[id]] <- iter[[id]]
     tmp
 }
+
+
+#' Return data of entities which occur in target dataset but not in source dataset
+#'
+#' @export
+#' @param target target dataset
+#' @param row_id Column name of row IDs
+#' @param missing result of find_missing function
+return_missing_data <- function(target, row_id, missing){
+    missing_ids <- missing[["to"]]
+    select_missing <- target[[row_id]] %in% missing_ids
+    target[select_missing, ]
+}
+
+
+#' Return data of entities that occur in the source dataset but not in the target
+#'
+#' @export
+#' @param result result of find_all_similar function
+#' @param source source dataset
+#' @param target target dataset
+#' @param row_id Column name of row IDs
+return_nonconsecutive_data <- function(result, source, target, row_id){
+    args <- as.list(match.call())
+    res_pivot <- result[is.na(result[[as.character(args$target)]]), ]
+    noncons_ids <- res_pivot[[as.character(args$source)]]
+    select_ids <- source[[row_id]] %in% noncons_ids
+    source[select_ids, ]
+}
+
+#' Insert nonconsecutive entities into pivot table
+#'
+#' @export
+#' @param out Pivot table returned by find_all_similar
+#' @param noncons_pivot Pivot table returned by find_all_similar
+#' between nonconsecutive datasets
+#' @param source Name of the nonconsecutive pivot source
+#' @param target Name of the nonconsecutive pivot target
+insert_nonconsecutive <- function(out, noncons_pivot, source, target){
+    last_column <- ncol(noncons_pivot)
+    running <- noncons_pivot[!is.na(noncons_pivot[, last_column]), ]
+    out <- dplyr::arrange_(out, source)
+    duplicated_source <- find_duplicated_values(out[[source]])
+    if(length(duplicated_source) > 0){
+        stop("There are duplicated values in source: ", duplicated_source)
+    }
+    out[out[[source]] %in% running[[source]], target] <- running[[target]]
+    out
+}
+

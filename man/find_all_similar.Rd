@@ -5,7 +5,8 @@
 \title{Find all matches between tables t1 and t2 and add candidates who did not run in the
 sequential election with missing values}
 \usage{
-find_all_similar(source, target, start = 1, cores = 1, id, ...)
+find_all_similar(source, target, start = 1, cores = 1, id,
+  keep_duplicities = FALSE, compare_cols = NULL, ...)
 }
 \arguments{
 \item{source}{Name of the first table}
@@ -18,8 +19,16 @@ find_all_similar(source, target, start = 1, cores = 1, id, ...)
 
 \item{id}{Column in source and target datasets containing ID of a row}
 
+\item{keep_duplicities}{Parameter indicating if duplicities should be kept or
+removed}
+
+\item{compare_cols}{columns which should be used for comparison of similar persons
+if there is more than 1 match (to find the most similar and remove duplicities)}
+
 \item{...}{Vectors containing variables for comparison (see find_similar)
-Find all matches between first and second table}
+Find all matches between first and second table
+Backward check if two persons from source are not assigned
+to the same person in target}
 }
 \description{
 Find all matches between tables t1 and t2 and add candidates who did not run in the

@@ -10,12 +10,16 @@ Encoding: UTF-8
 LazyData: true
 Suggests: testthat,
     knitr,
-    rmarkdown
+    rmarkdown, 
+    readr, 
+    lubridate
 Imports:
     dplyr, 
     parallel, 
     tidyr, 
     glue, 
-    purrr
+    purrr,
+    Rcpp
 RoxygenNote: 6.0.1
 VignetteBuilder: knitr
+LinkingTo: Rcpp

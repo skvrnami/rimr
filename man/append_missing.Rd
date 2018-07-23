@@ -4,7 +4,7 @@
 \alias{append_missing}
 \title{Append missing entities to output}
 \usage{
-append_missing(target, target_ids, out)
+append_missing(target, target_ids, out, found_ids)
 }
 \arguments{
 \item{target}{data.frame with target data}
@@ -12,6 +12,9 @@ append_missing(target, target_ids, out)
 \item{target_ids}{column name of IDs in target data.frame}
 
 \item{out}{output returned by find_all_similar function}
+
+\item{found_ids}{vector containing IDs from target which has
+been found in the source dataset}
 }
 \description{
 Append missing entities to output
