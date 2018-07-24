@@ -99,7 +99,7 @@ insert_value_and_type <- function(var, value){
     var
 }
 
-#' insert query values into variable list
+
 insert_query_values <- function(source, row, vars){
     select_vars <- unlist(lapply(vars, function(x) x$column))
     var_values <- dplyr::select(source[row, ], !!select_vars)
@@ -115,10 +115,10 @@ insert_query_values <- function(source, row, vars){
 #' Calculate in how many columns the data about the persons match (strictly equals)
 calculate_similarity_between_persons <- function(original, similar){
     #' TODO: use other comparison than strict equality
-    unlist(purrr::map(purrr::transpose(similar), function(x) {
-        sum(unlist(purrr::map2(original, x, function(y, z) {
-            y == z})), na.rm = TRUE)
-    }))
+    purrr::map_int(purrr::transpose(similar), function(x) {
+        sum(purrr::map2_lgl(original, x, function(y, z) {
+            y == z}), na.rm = TRUE)
+    })
 }
 
 
@@ -141,6 +141,9 @@ calculate_similarity_between_persons <- function(original, similar){
 #' @param id Column in source and target datasets containing ID of a row
 #' @param compare_cols Columns to be used for comparison to remove duplicates
 #' @param verbose Specify if you want to display message for every 250th row
+#' @param keep_duplicities Bool indicating whether entities with the same attributes
+#' should be kept or the most similar entity to the original record should be found
+#' (and duplicities should be removed)
 find_similar <- function(source,
                          target,
                          row,
@@ -311,9 +314,9 @@ find_all_duplicities <- function(sim_group, source, target, id, compare_cols){
 #' Find IDs of entitites from target that does not occur in output
 #'
 #' @export
-#' @param target data.frame with target data
-#' @param target_ids column name of IDs in target data.frame
-#' @param out output returned by find_all_similar function
+#' @param target Data.frame with target data
+#' @param target_ids Column name of IDs in target data.frame
+#' @param found_ids Vector with IDs found by find_all_similar function(s)
 find_missing <- function(target, target_ids, found_ids){
     missing_from_target <- target[[target_ids]]
     missing_from_target <- missing_from_target[!missing_from_target %in% found_ids]
@@ -338,10 +341,6 @@ append_missing <- function(target, target_ids, out, found_ids){
     dplyr::bind_rows(out, missing)
 }
 
-# TODO: Define recursive matching for sequence of election
-# TODO: Enable different operations to define match between different
-# types of election (e.g. the criteria for flagging the person as the same
-# between regional <-> regional elections may be different than for national <-> regional)
 
 #' Create tidy output
 #'

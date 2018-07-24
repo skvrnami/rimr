@@ -14,8 +14,8 @@ vignette: >
 library(dplyr)
 library(rimr)
 
-load("../data/kraj_2000.RData")
-load("../data/kraj_2004.RData")
+data("kraj_2000")
+data("kraj_2004")
 
 kraj_2000$last_name <- gsub("l'", "ĺ", kraj_2000$last_name)
 kraj_2004$last_name <- gsub("l'", "ĺ", kraj_2004$last_name)

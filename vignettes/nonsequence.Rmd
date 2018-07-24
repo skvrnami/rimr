@@ -21,7 +21,8 @@ library(readr)
 library(dplyr)
 
 # Data on donations to ANO
-ano_donations <- readr::read_delim("../data/ps2017-ano-penizefo.csv", delim = ";")
+data("ano_donations_2017")
+ano_donations <- ano_donations_2017
 colnames(ano_donations) <- c("date", "amount", "last_name", "first_name", 
                              "title_before", "title_after", "birth_date", 
                              "residence")
@@ -35,9 +36,8 @@ ano_donations %>%
 ano_donation_sums$row_id <- 1:nrow(ano_donation_sums)
 
 # Data on candidates
-ano_candidates <- read_delim("../data/psrk.csv", ";", 
-                       escape_double = FALSE, locale = locale(encoding = "WINDOWS-1250"),
-                       trim_ws = TRUE) %>%
+data("psp_2017")
+ano_candidates <- psp_2017 %>%
     filter(PSTRANA == 768) %>% 
     select(-c(BYDLISTEK, PLATNOST, POCPROC, POCPROCVSE, PORADIMAND, PORADINAHR))
 
@@ -55,7 +55,7 @@ pivot <- find_all_similar(source = ano_candidates,
                           target = ano_donation_sums, 
                           start = 1, 
                           id = "row_id", 
-                          cores = 4, 
+                          cores = 1, 
                           eq = c("first_name", "last_name", "residence"), 
                           eq_tol = list(c("birth_year", 1))
                           )

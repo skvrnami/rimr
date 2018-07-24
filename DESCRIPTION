@@ -5,9 +5,10 @@ Version: 0.2.0
 Authors@R: person("Michael", "Škvrňák", email = "397925@mail.muni.cz",
                   role = c("aut", "cre"))
 Description: Package for deterministic record linkage in R. 
-License: MIT
+License: MIT + file LICENSE
 Encoding: UTF-8
 LazyData: true
+Depends: R (>= 2.10)
 Suggests: testthat,
     knitr,
     rmarkdown, 
