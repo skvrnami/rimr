@@ -37,7 +37,7 @@ based on:
 :white_check_mark: contains string  
 :x: contains string separated by word boundaries (for matching change in women's names after marriage + after divorce)  
 :white_check_mark: removing duplicites based on finding the most similar person (exact match on specified columns)  
-:x: allow methods other than strict equality for finding the most similar person (when there are more than 1 similar person, e.g. in the case of description of a person - using TF-IDF or something similar)  
+:white_check_mark: allow methods other than strict equality for finding the most similar person (when there are more than 1 similar person, e.g. in the case of description of a person - using Jaccard distance for comparison of words in occupation of a person, see `tests` for example)  
 
 ## Workflow  
 :white_check_mark: Find all similar between 2 datasets  
