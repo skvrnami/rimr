@@ -7,11 +7,11 @@
 find_missing(target, target_ids, found_ids)
 }
 \arguments{
-\item{target}{data.frame with target data}
+\item{target}{Data.frame with target data}
 
-\item{target_ids}{column name of IDs in target data.frame}
+\item{target_ids}{Column name of IDs in target data.frame}
 
-\item{out}{output returned by find_all_similar function}
+\item{found_ids}{Vector with IDs found by find_all_similar function(s)}
 }
 \description{
 Find IDs of entitites from target that does not occur in output

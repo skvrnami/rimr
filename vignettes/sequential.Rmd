@@ -21,10 +21,10 @@ knitr::opts_chunk$set(
 library(dplyr)
 library(rimr)
 
-load("../data/kraj_2000.RData")
-load("../data/kraj_2004.RData")
-kraj_2008 <- readr::read_csv("../data/kraj_2008.csv")
-kraj_2012 <- readr::read_csv("../data/kraj_2012.csv")
+data("kraj_2000")
+data("kraj_2004")
+data("kraj_2008")
+data("kraj_2012")
 
 kraj_2000$abs_votes <- as.integer(gsub("\\s", "", kraj_2000$abs_votes))
 kraj_2004$abs_votes <- as.integer(gsub("\\s", "", kraj_2004$abs_votes))
