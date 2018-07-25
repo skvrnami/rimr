@@ -61,13 +61,35 @@ test_that("creating predicate works", {
 })
 
 
+test_that("compare values returns expected result", {
+    expect_equal(compare_values("Karel", "Karel"), 1)
+    expect_equal(compare_values(list(c("starosta", "Chrudim")),
+                                list(c("starosta"))),
+                 0.5)
+})
+
+
 original <- data.frame(first_name = "Karel", last_name = "Novák",
                        birth_year = 1980, stringsAsFactors = FALSE)
 similar <- data.frame(first_name = "Karel", last_name = "Novák",
                       birth_year = 1983, stringsAsFactors = FALSE)
+
+original2 <- data.frame(first_name = "Karel", last_name = "Novák",
+                       birth_year = 1980,
+                       occupation = c("starosta"),
+                       stringsAsFactors = FALSE)
+similar2 <- data.frame(first_name = c("Karel", "Varel"),
+                      last_name = c("Novák", "Plovák"),
+                      birth_year = c(1983, 1930),
+                      occupation = c("starosta Chrudimi", "chobot"),
+                      stringsAsFactors = FALSE)
+original2$occupation <- strsplit(original2$occupation, " ")
+similar2$occupation <- strsplit(similar2$occupation, " ")
 test_that("calculating similarity works", {
-      expect_equal(calculate_similarity_between_persons(original, similar),
+    expect_equal(calculate_similarity_between_persons(original, similar),
                    2)
+    expect_equal(calculate_similarity_between_persons(original2, similar2),
+                 c(2.5, 0))
 })
 
 vars <- create_var_list(c("first_name", "last_name"), "=")

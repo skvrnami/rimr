@@ -115,10 +115,20 @@ insert_query_values <- function(source, row, vars){
 #' Calculate in how many columns the data about the persons match (strictly equals)
 calculate_similarity_between_persons <- function(original, similar){
     #' TODO: use other comparison than strict equality
-    purrr::map_int(purrr::transpose(similar), function(x) {
-        sum(purrr::map2_lgl(original, x, function(y, z) {
-            y == z}), na.rm = TRUE)
+    purrr::map_dbl(purrr::transpose(similar), function(x) {
+        sum(purrr::map2_dbl(original, x, compare_values), na.rm = TRUE)
     })
+}
+
+
+compare_values <- function(x, y){
+    if(length(unlist(x)) == 1 & length(unlist(y)) == 1){
+        as.numeric(x == y)
+    }else{
+        x <- unlist(x)
+        y <- unlist(y)
+        sum(x %in% y) / length(unique(c(x, y)))
+    }
 }
 
 
