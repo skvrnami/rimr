@@ -314,8 +314,8 @@ find_all_duplicities <- function(sim_group, source, target, id, compare_cols){
     common_cols <- find_common_cols(source, target, id, compare_cols,
                                     remove_id = FALSE)
 
-    original <- dplyr::select(original, !!common_cols)
-    similars <- dplyr::select(similar, !!common_cols)
+    original <- dplyr::select(original, c(!!common_cols, id))
+    similars <- dplyr::select(similar, c(!!common_cols, id))
 
     find_duplicity(original, similars, id)
 }
