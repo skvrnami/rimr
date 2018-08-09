@@ -1,7 +1,7 @@
 Package: rimr
 Type: Package
 Title: Deterministic record linkage in R
-Version: 0.2.1
+Version: 0.2.2
 Authors@R: person("Michael", "Škvrňák", email = "397925@mail.muni.cz",
                   role = c("aut", "cre"))
 Description: Package for deterministic record linkage in R. 

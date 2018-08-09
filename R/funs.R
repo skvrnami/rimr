@@ -287,12 +287,12 @@ find_all_similar <- function(source,
 }
 
 
-get_original <- function(sim_group, source){
-    source[sim_group$from, ]
+get_original <- function(sim_group, source, id = "row_id"){
+    source[source[[id]] %in% sim_group$from, ]
 }
 
-get_similar <- function(sim_group, target){
-    target[unique(sim_group$to), ]
+get_similar <- function(sim_group, target, id = "row_id"){
+    target[target[[id]] %in% unique(sim_group$to), ]
 }
 
 # find_most_similar <- function(original, similar){
@@ -308,8 +308,8 @@ find_duplicity <- function(original, similar, id){
 
 find_all_duplicities <- function(sim_group, source, target, id, compare_cols){
 
-    original <- get_original(sim_group, source)
-    similar <- get_similar(sim_group, target)
+    original <- get_original(sim_group, source, id)
+    similar <- get_similar(sim_group, target, id)
 
     common_cols <- find_common_cols(source, target, id, compare_cols,
                                     remove_id = FALSE)
