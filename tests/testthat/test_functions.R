@@ -214,19 +214,25 @@ target <- data.frame(
 out1 <- find_all_similar(source, target, start = 1, cores = 1,
                          id = "row_id",
                          eq = c("first_name", "last_name"),
-                         keep_duplicities = FALSE)
+                         keep_most_similar = TRUE)
 
 test_that("find_all_similar removes duplicities if expected", {
     expect_equal(find_all_similar(original, similar3, start = 1, id = "row_id",
                                   eq = c("first_name", "last_name"),
-                                  keep_duplicities = FALSE),
+                                  keep_most_similar = TRUE),
                  data.frame(original = 1,
                             similar3 = 3))
     expect_equal(find_all_similar(source, target, start = 1, id = "row_id",
                                   eq = c("first_name", "last_name"),
-                                  keep_duplicities = FALSE),
+                                  keep_most_similar = TRUE),
                  data.frame(source = 1:4,
                             target = c(1, NA, 3, NA)))
+    expect_equal(find_all_similar(source, target, start = 1, id = "row_id",
+                                  eq = c("first_name", "last_name"),
+                                  keep_most_similar = TRUE,
+                                  deduplicate = FALSE),
+                 data.frame(source = 1:4,
+                            target = c(1, 1, 3, 3)))
 })
 
 test_pivot <- data.frame(
