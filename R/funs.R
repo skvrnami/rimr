@@ -151,7 +151,7 @@ compare_values <- function(x, y){
 #' @param id Column in source and target datasets containing ID of a row
 #' @param compare_cols Columns to be used for comparison to remove duplicates
 #' @param verbose Specify if you want to display message for every 250th row
-#' @param keep_duplicities Bool indicating whether entities with the same attributes
+#' @param keep_most_similar Bool indicating whether entities with the same attributes
 #' should be kept or the most similar entity to the original record should be found
 #' (and duplicities should be removed)
 find_similar <- function(source,
@@ -166,7 +166,7 @@ find_similar <- function(source,
                          lte = NULL,
                          id = "row_id",
                          compare_cols = NULL,
-                         keep_duplicities = TRUE,
+                         keep_most_similar = TRUE,
                          verbose = TRUE){
     eqs <- create_var_list(eq, "=")
     eq_sub <- create_var_list(eq_sub, "=s")
@@ -186,7 +186,7 @@ find_similar <- function(source,
     tmp <- dplyr::filter_(target, filter_query)
 
     if(nrow(tmp) > 1){
-        if(!keep_duplicities){
+        if(keep_most_similar){
             common_cols <- find_common_cols(source, target, id, compare_cols,
                                             remove_id = TRUE)
 
@@ -224,8 +224,9 @@ find_similar <- function(source,
 #' @param start From which row the comparison should be made
 #' @param id Column in source and target datasets containing ID of a row
 #' @param cores Number of cores to be used for computation
-#' @param keep_duplicities Parameter indicating if duplicities should be kept or
+#' @param keep_most_similar Parameter indicating if duplicities should be kept or
 #' removed
+#' @param deduplicate Parameter if duplicates should be removed
 #' @param compare_cols columns which should be used for comparison of similar persons
 #' if there is more than 1 match (to find the most similar and remove duplicities)
 #' @param ... Vectors containing variables for comparison (see find_similar)
@@ -234,7 +235,8 @@ find_all_similar <- function(source,
                              start = 1,
                              cores = 1,
                              id,
-                             keep_duplicities = FALSE,
+                             keep_most_similar = TRUE,
+                             deduplicate = TRUE,
                              compare_cols = NULL,
                              ...){
 
@@ -256,7 +258,7 @@ find_all_similar <- function(source,
                                                        target = target,
                                                        row = x,
                                                        id = id,
-                                                       keep_duplicities = keep_duplicities,
+                                                       keep_most_similar = keep_most_similar,
                                                        compare_cols = compare_cols,
                                                        ...),
                               mc.cores = cores)
@@ -265,7 +267,7 @@ find_all_similar <- function(source,
 
     #' Backward check if two persons from source are not assigned
     #' to the same person in target
-    if(!keep_duplicities){
+    if(deduplicate){
         duplicated_values <- find_duplicated_values(out$to)
         # non_na <- `[[`(filter(out, !is.na(to)), 2)
         # duplicated_values <- non_na[which(duplicated(non_na))]
