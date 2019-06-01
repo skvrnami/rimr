@@ -7,7 +7,7 @@ the whole second dataset (t2)}
 \usage{
 find_similar(source, target, row, eq = NULL, eq_tol = NULL, eq_sub = NULL,
   ht = NULL, lt = NULL, hte = NULL, lte = NULL, id = "row_id",
-  compare_cols = NULL, keep_duplicities = TRUE, verbose = TRUE)
+  compare_cols = NULL, keep_most_similar = TRUE, verbose = TRUE)
 }
 \arguments{
 \item{source}{Name of the first table}
@@ -36,7 +36,7 @@ in t1 and t2 within specified range (tolerance)}
 
 \item{compare_cols}{Columns to be used for comparison to remove duplicates}
 
-\item{keep_duplicities}{Bool indicating whether entities with the same attributes
+\item{keep_most_similar}{Bool indicating whether entities with the same attributes
 should be kept or the most similar entity to the original record should be found
 (and duplicities should be removed)}
 

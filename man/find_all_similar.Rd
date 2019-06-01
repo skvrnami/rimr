@@ -6,7 +6,7 @@
 sequential election with missing values}
 \usage{
 find_all_similar(source, target, start = 1, cores = 1, id,
-  keep_duplicities = FALSE, compare_cols = NULL, ...)
+  keep_most_similar = TRUE, deduplicate = TRUE, compare_cols = NULL, ...)
 }
 \arguments{
 \item{source}{Name of the first table}
@@ -19,8 +19,10 @@ find_all_similar(source, target, start = 1, cores = 1, id,
 
 \item{id}{Column in source and target datasets containing ID of a row}
 
-\item{keep_duplicities}{Parameter indicating if duplicities should be kept or
+\item{keep_most_similar}{Parameter indicating if duplicities should be kept or
 removed}
+
+\item{deduplicate}{Parameter if duplicates should be removed}
 
 \item{compare_cols}{columns which should be used for comparison of similar persons
 if there is more than 1 match (to find the most similar and remove duplicities)}
