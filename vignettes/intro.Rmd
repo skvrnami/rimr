@@ -39,8 +39,7 @@ sim1 <- find_similar(source = kraj_2000,
              id = "row_id",
              eq = c("first_name", "last_name", "approx_birth_year", 
                     "residence", "region"), 
-             keep_duplicities = FALSE,
-             verbose = FALSE)
+             keep_most_similar = TRUE)
 ```
 
 Depending on the conditions, it is possible that there are more than 1 records

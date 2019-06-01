@@ -47,7 +47,7 @@ k_00_04 <- find_all_similar(source = kraj_2000,
                             eq = c("first_name", "last_name", "region"), 
                             eq_tol = list(c("approx_birth_year", 1)), 
                             id = "row_id", 
-                            keep_duplicities = FALSE, 
+                            keep_most_similar = TRUE, 
                             verbose = TRUE, 
                             cores = 4)
 
@@ -56,7 +56,7 @@ k_04_08 <- find_all_similar(source = kraj_2004,
                             eq = c("first_name", "last_name", "region"), 
                             eq_tol = list(c("approx_birth_year", 1)), 
                             id = "row_id", 
-                            keep_duplicities = FALSE, 
+                            keep_most_similar = TRUE, 
                             verbose = TRUE, 
                             cores = 4)
 
@@ -65,7 +65,7 @@ k_08_12 <- find_all_similar(source = kraj_2008,
                             eq = c("first_name", "last_name", "region"), 
                             eq_tol = list(c("approx_birth_year", 1)), 
                             id = "row_id", 
-                            keep_duplicities = FALSE, 
+                            keep_most_similar = TRUE, 
                             verbose = TRUE, 
                             cores = 4)
 
@@ -95,7 +95,7 @@ k_00_08 <- find_all_similar(noncons_04, missing_data_08,
                             eq = c("first_name", "last_name", "region"), 
                             eq_tol = list(c("approx_birth_year", 1)), 
                             id = "row_id", 
-                            keep_duplicities = FALSE, 
+                            keep_most_similar = TRUE, 
                             verbose = TRUE, 
                             cores = 4)
 colnames(k_00_08) <- c("kraj_2000", "kraj_2008")
@@ -136,7 +136,7 @@ k_04_12 <- find_all_similar(noncons_12,
                             eq = c("first_name", "last_name", "region"), 
                             eq_tol = list(c("approx_birth_year", 1)), 
                             id = "row_id", 
-                            keep_duplicities = FALSE, 
+                            keep_most_similar = TRUE, 
                             verbose = TRUE, 
                             cores = 4)
 colnames(k_04_12) <- c("kraj_2004", "kraj_2012")
@@ -152,7 +152,7 @@ k_00_12 <- find_all_similar(noncons_12_2,
                             eq = c("first_name", "last_name", "region"), 
                             eq_tol = list(c("approx_birth_year", 1)), 
                             id = "row_id", 
-                            keep_duplicities = FALSE, 
+                            keep_most_similar = TRUE, 
                             verbose = TRUE, 
                             cores = 4)
 colnames(k_00_12) <- c("kraj_2000", "kraj_2012")
@@ -169,62 +169,3 @@ panel_00_12 <- create_panel_output(out_00_12_final, "person_id", "data")
 #noncons_08 <- return_nonconsecutive_data(k_00_04, kraj_2000, kraj_2004, "row_id")
 #noncons_00 <- return_nonconsecutive_data(k_00_08, kraj_2000, kraj_2008, "row_id")
 ```
-
-```{r, eval = FALSE}
-
-rename_output_colnames <- function(out, datasets){
-    colnames(out) <- datasets
-    out
-}
-
-
-attend_trolley <- function(data, 
-                           id, 
-                           cores, 
-                           compare_cols, 
-                           verbose = FALSE, 
-                           keep_duplicities, 
-                           ...){
-    no_datasets <- length(data)
-    out <- purrr::map(1:(no_datasets - 1), function(x) 
-        find_all_similar(data[[x]], 
-                         data[[x + 1]], 
-                         id = id, 
-                         keep_duplicities = keep_duplicities, 
-                         verbose = verbose, 
-                         cores = cores, 
-                         ...
-                         ))
-    args <- match.call()
-    datasets <- as.character(args$data)
-    datasets <- datasets[2:length(datasets)]
-    
-    out <- purrr::map(1:length(out), function(x) 
-        rename_output_colnames(out[[x]], 
-                               c(datasets[x], 
-                                 datasets[x+1])))
-    browser()
-    
-    missing <- purrr::map(2:length(out), 
-                          function(x) 
-                              find_missing(target = eval(as.name(datasets[x+1])), 
-                                           target_ids = id, 
-                                           found_ids = out[[x]][[2]]))
-    missing_data <- purrr::map(1:length(missing), function(x) 
-        return_missing_data(target = eval(as.name(datasets[2+x])), 
-                            row_id = id, 
-                            missing = missing[[x]]))
-    
-    
-    
-}
-
-out <- attend_trolley(list(kraj_2000, kraj_2004, kraj_2008, kraj_2012), 
-                      eq = c("first_name", "last_name", "region"), 
-                      eq_tol = list(c("approx_birth_year", 1)), 
-                      id = "row_id", 
-                      keep_duplicities = FALSE, 
-                      verbose = TRUE, 
-                      cores = 4)
-```
-
